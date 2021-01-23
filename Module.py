@@ -39,6 +39,9 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.pushButton_logout.clicked.connect(self.logout)
         #self.ui.tableWidget_vibpr_proekta.itemClicked.connect(self.tabl_vibor_proekta)
 
+
+
+
         self.ui.pushButton_create_nar.clicked.connect(self.sozd_naryad)
         self.ui.tabWidget.tabBarClicked.connect(self.tab_click)
         self.ui.tableWidget_vibor_nar_dlya_imen.itemClicked.connect(self.tabl_vibor_nar_dla_imen)
@@ -62,9 +65,18 @@ class mywindow(QtWidgets.QMainWindow):
         tabl_vib_mk.doubleClicked.connect(self.dblclk_sp_mk)
 
         tabl_vib_det = self.ui.tableWidget_vibor_det
-        tabl_vib_det.setSelectionBehavior(0)
+        tabl_vib_det.setSelectionBehavior(1)
         tabl_vib_det.setSelectionMode(1)
         F.ust_cvet_videl_tab(tabl_vib_det)
+        tabl_vib_det.clicked.connect(self.vibor_operacii)
+        tabl_vib_det.doubleClicked.connect(self.dblclk_mk)
+
+        tabl_vib_oper = self.ui.tableWidget_vibor_oper
+        tabl_vib_oper.setSelectionBehavior(1)
+        tabl_vib_oper.setSelectionMode(1)
+        F.ust_cvet_videl_tab(tabl_vib_oper)
+        tabl_vib_oper.doubleClicked.connect(self.vvod_oper)
+
 
 
 
@@ -131,6 +143,133 @@ class mywindow(QtWidgets.QMainWindow):
         for item in Stroki:
             self.ui.comboBox_cr_nar_etap.addItem(item.strip())
 
+        self.ui.lineEdit_parol.setText('2020')
+        self.ui.comboBox_spis_users.setCurrentIndex(2)
+
+    def vvod_oper(self):
+        '''
+        1.провеприть была ли эта операуия ранее в нарядах
+        2.внести в текст
+            рассчитать норму времени с учетом кол-ва
+            найти номер проекта по номеру ПУ
+
+        '''
+        return
+
+    def dblclk_mk(self):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        r = tabl_mk.currentRow()
+        k = tabl_mk.currentColumn()
+        if k >10 and (k-11)%4==0:
+            self.vigruz_tehkart(r,k)
+        if k >10 and (k-12)%4==0:
+            self.vigruz_tara(r,k)
+
+    def vigruz_tara(self, r, k):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        if tabl_mk.item(r, k).text() == "":
+            return
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+
+        id = tabl_mk.item(r, 6).text().strip()
+
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+        bd_arh_tar = F.otkr_f(F.tcfg('arh_tar'), separ='|')
+        s = ''
+        for i in bd_arh_tar:
+            if i[3] == nom_mk:
+                sost = i[6]
+                nom = i[0]
+                marsh = i[9]
+                nazv = i[5]
+                det_tmp = F.otkr_f(F.scfg('bd_tara') + os.sep + nom + '.txt', separ='|')
+                for i in range(0, len(det_tmp)):
+                    if det_tmp[i][3].strip() == id:
+                        s += sost + ' ' + nom + ' ' + nazv + '\n' + marsh.replace('$',' ') + '\n' + '\n'
+        showDialog(self, s)
+        return
+
+    def vigruz_tehkart(self,r,k):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        if tabl_mk.item(r, k).text() == "":
+            return
+        tmp = tabl_mk.item(r, k).text().split('Операции:')
+        sp_op = tmp[-1].split(';')
+        if F.nalich_file(F.tcfg('BD_dse')) == False:
+            showDialog(self, 'Не найден BD_dse')
+            return
+        sp_dse = F.otkr_f(F.tcfg('BD_dse'), False, '|')
+        naim = tabl_mk.item(r, 0).text().strip()
+        nn = tabl_mk.item(r, 1).text().strip()
+        nom_tk = ''
+        for i in range(0, len(sp_dse)):
+            if sp_dse[i][0] == nn and sp_dse[i][1] == naim:
+                nom_tk = sp_dse[i][2]
+                if nom_tk == '':
+                    showDialog(self, 'Не найден номер ТК')
+                    return
+                break
+
+        sp_tk = F.otkr_f(F.scfg('add_docs') + os.sep + nom_tk + '_' + nn + '.txt', False, "|")
+        if sp_tk == ['']:
+            showDialog(self, 'Не найден файл ТК')
+            return
+        msgg = ''
+        for o1 in sp_op:
+            msgg += str(o1) + ': '
+            for i in range(11, len(sp_tk)):
+                if sp_tk[i][3].startswith('Т1-' + str(o1).strip()) == True:
+                    if sp_tk[i][20] == '1':
+                        msgg += sp_tk[i][0] + '\n' + ' Tп.з.=' + sp_tk[i][6] + ' Tшт.=' + sp_tk[i][7] + '\n'
+                    else:
+                        msgg += sp_tk[i][0] + '\n'
+            msgg += '\n'
+        showDialog(self, msgg)
+
+    def vibor_operacii(self):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
+        if tabl_mk.currentRow() == -1:
+            return
+        id_det = tabl_mk.item(tabl_mk.currentRow(), 6).text()
+        naim_det = tabl_mk.item(tabl_mk.currentRow(), 0).text().strip()
+        nn_det = tabl_mk.item(tabl_mk.currentRow(), 1).text().strip()
+        sp_dse = F.otkr_f(F.tcfg('BD_dse'), False, '|')
+        if sp_dse == ['']:
+            showDialog(self, 'Не найден BD_dse')
+            return
+        nom_tk = F.naiti_v_spis(sp_dse,2,nn_det,naim_det)
+        sp_tk = F.otkr_f(F.scfg('add_docs') + os.sep + nom_tk + '_' + nn_det + '.txt', False, "|",pickl=True)
+        if sp_tk == ['']:
+            showDialog(self, 'Не найден файл ТК')
+            return
+        sp_tk2 = []
+        for i in range(11, len(sp_tk)):
+            if len(sp_tk[i])>2 and 'Т1' in sp_tk[i][3]:
+                sp_tk2.append(sp_tk[i])
+        sp_tk2 = self.oform_tk_pod_form(sp_tk2)
+        F.zapoln_wtabl(self,sp_tk2,tabl_sp_oper,0,0,'','',300,True,'')
+
+    def udal_kol(self,s,nom):
+        for i in range(0, len(s)):
+            s[i].pop(nom)
+        return s
+
+    def oform_tk_pod_form(self,sp_tk2):
+        sp_tk2.insert(0, ['Sod','','Nom','','rc','oborud','Тпз','Тшт','проф','кр','material','оснастка','инструмент','документ','','','','','','','ur'])
+        tmp_uadl = [1,2,12,12,12,12,12,12]
+        for i in tmp_uadl:
+            sp_tk2 = self.udal_kol(sp_tk2,i)
+
+        for i in range(len(sp_tk2)):
+            if i > 0:
+                sp_tk2[i][0] = ' '*4*(int(sp_tk2[i][12])-1) + sp_tk2[i][0]
+            for j in range(8,12):
+                sp_tk2[i][j] = sp_tk2[i][j].replace('{','; ')
+                sp_tk2[i][j] = sp_tk2[i][j].replace('$', ', ')
+        return sp_tk2
+
     def dblclk_sp_mk(self):
         self.zapoln_tabl_mk()
 
@@ -148,6 +287,8 @@ class mywindow(QtWidgets.QMainWindow):
         sp = self.oformlenie_sp_pod_mk(sp)
         F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 200, True, '', 65)
         self.oform_mk(sp)
+
+
 
     def oformlenie_sp_pod_mk(self,s):
         for j in s:
