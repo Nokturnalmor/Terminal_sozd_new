@@ -77,7 +77,8 @@ class mywindow(QtWidgets.QMainWindow):
         F.ust_cvet_videl_tab(tabl_vib_oper)
         tabl_vib_oper.doubleClicked.connect(self.vvod_oper)
 
-
+        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
+        line_kolvo.textChanged.connect(self.rasch_norm_vr)
 
 
         lineEdit_mk = self.ui.lineEdit_mk
@@ -146,14 +147,105 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.lineEdit_parol.setText('2020')
         self.ui.comboBox_spis_users.setCurrentIndex(2)
 
+    def rasch_norm_vr(self):
+        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
+        if line_kolvo.text().strip() == "":
+            return
+        else:
+            if F.is_numeric(line_kolvo.text().strip()) == False:
+                showDialog(self,'Не верно внесено кол-во')
+                return
+        kol = int(line_kolvo.text().strip())
+        t_pz = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),4).text().strip())
+        t_sht = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),5).text().strip())
+        koid = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),9).text().strip())
+        vr = t_pz+t_sht*kol/koid
+        return round(vr/60,1)
+
+
     def vvod_oper(self):
         '''
         1.провеприть была ли эта операуия ранее в нарядах
+        1.1. проверить кол-во, ранее выданное
+
         2.внести в текст
             рассчитать норму времени с учетом кол-ва
             найти номер проекта по номеру ПУ
-
+        3.вписать в МК все наряды по операциям этой детали.
         '''
+
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
+        line_nom_pr = self.ui.lineEdit_cr_nar_nom_proect
+        line_nom_pu = self.ui.lineEdit_cr_nar_nomerPU
+        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
+        line_norma = self.ui.lineEdit_cr_nar_norma
+        line_dse = self.ui.lineEdit_cr_nar_pozicii
+        text_zad = self.ui.plainTextEdit_zadanie
+
+        line_nom_pr.setText('')
+        line_nom_pu.setText('')
+        line_kolvo.setText('')
+        line_norma.setText('')
+        line_dse.setText('')
+        text_zad.setPlainText('')
+        if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
+            return
+
+        nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
+
+        nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
+        if nom_pr == None:
+            nom_pr = '*'
+        line_nom_pr.setText(nom_pr)
+        line_nom_pu.setText(nom_pu)
+        kolvo = int(tabl_mk.item(tabl_mk.currentRow(),10).text().strip())
+        line_kolvo.setText(str(kolvo))
+        norm_vr = self.rasch_norm_vr()
+        line_norma.setText(str(norm_vr))
+        line_dse.setText(tabl_mk.item(tabl_mk.currentRow(),1).text().strip())
+
+        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
+        naim_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),0).text().strip()
+        nom_rc = tabl_sp_oper.item(tabl_sp_oper.currentRow(),2).text().strip()
+        naim_ob = tabl_sp_oper.item(tabl_sp_oper.currentRow(),3).text().strip()
+        docs = tabl_sp_oper.item(tabl_sp_oper.currentRow(),11).text().strip()
+        materials = tabl_sp_oper.item(tabl_sp_oper.currentRow(),8).text().strip()
+        if materials != '':
+            materials = materials.split('; ')
+
+
+
+        masgg = F.vpis(nom_op + ' ' + naim_op ,50,"","") + '\n'
+        if docs != '':
+            masgg += 'Документация: ' + docs + '\n'
+        masgg+= nom_rc + ' ' + naim_ob + '\n'
+        masgg += 'Время: ' + str(norm_vr) + 'час.' + '\n'
+        masgg += '\n'
+        for i in range(tabl_sp_oper.currentRow()+1, tabl_sp_oper.rowCount()):
+            if tabl_sp_oper.item(i,12).text().strip() != '2':
+                break
+            nom_per = tabl_sp_oper.item(i, 1).text().strip()
+            naim_per = tabl_sp_oper.item(i, 0).text().strip()
+            masgg += nom_per + ' ' + naim_per + '\n'
+            masgg += '\n'
+            osnast= tabl_sp_oper.item(i, 9).text().strip()
+            instr = tabl_sp_oper.item(i, 10).text().strip()
+            if instr != "":
+                masgg += "Инструмент: " + instr + '\n'
+
+            if osnast != "":
+                masgg += "Оснастка: " + osnast + '\n'
+                masgg += '\n'
+        if materials != '':
+            masgg += 'Материалы: ' + '\n'
+            for i in range(0,len(materials)):
+                masgg += materials[i] + '\n'
+
+        text_zad.setPlainText(masgg)
+
         return
 
     def dblclk_mk(self):
@@ -257,7 +349,7 @@ class mywindow(QtWidgets.QMainWindow):
         return s
 
     def oform_tk_pod_form(self,sp_tk2):
-        sp_tk2.insert(0, ['Sod','','Nom','','rc','oborud','Тпз','Тшт','проф','кр','material','оснастка','инструмент','документ','','','','','','','ur'])
+        sp_tk2.insert(0, ['Sod','','Nom','','rc','oborud','Тпз','Тшт','проф','кр','material','оснастка/КОИД','инструмент','документ','','','','','','','ur'])
         tmp_uadl = [1,2,12,12,12,12,12,12]
         for i in tmp_uadl:
             sp_tk2 = self.udal_kol(sp_tk2,i)
@@ -738,6 +830,9 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def sozd_naryad(self):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.checkBox_vecher.checkState() == 1:
@@ -778,7 +873,12 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.checkBox.checkState() == 1:
             self.Migat(3, self.ui.checkBox, "Не выбрано состояние")
             return
-        primechanie = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 8).text()
+        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
+        primechanie = ''
+        for i in range(11, tabl_mk.columnCount(),4):
+            if nom_op in tabl_mk.item(tabl_mk.currentRow(),i).text() and 'Операции' in tabl_mk.item(tabl_mk.currentRow(),i).text():
+                primechanie = tabl_mk.item(tabl_mk.currentRow(),i+3).text()
+                break
         if "Акт №" in primechanie and " по наряду №" in primechanie:
             primechanie = primechanie + ' '
         else:
@@ -818,19 +918,30 @@ class mywindow(QtWidgets.QMainWindow):
             tip_narad = 'Вечерка'
         else:
             tip_narad = 'День'
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+        nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
+        nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
+        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
+        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
+        kol = int(line_kolvo.text().strip())
+        ves_det = F.valm(tabl_mk.item(tabl_mk.currentRow(),8).text()) * kol
+        ves_det = round(ves_det,1)
+        sp_BD_Proect = F.otkr_f(F.tcfg('BD_Proect'),False,'|')
 
-        vid_pr = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 2).text()
+        vid_pr = F.naiti_v_spis_2_1(sp_BD_Proect,1,nom_pu,0,nom_pr,2)
 
 
 
-        Stroki.append(str(nom) + "||" + DT.today().strftime("%d.%m.%Y %H:%M:%S") + '|' +\
+
+
+        Stroki.append(str(nom) + "|" + str(nom_mk) + "|" + DT.today().strftime("%d.%m.%Y %H:%M:%S") + '|' +\
                       self.ui.lineEdit_cr_nar_nom_proect.text() + "$" +  self.ui.lineEdit_cr_nar_nomerPU.text() + \
                       "|" + primechanie + self.ui.plainTextEdit_zadanie.toPlainText().strip().replace('\n',' ') +\
                       '|' + self.ui.lineEdit_cr_nar_norma.text() + \
-                      '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '||' + vid_pr +  \
+                      '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '|' + str(ves_det) + '|' + vid_pr +  \
                       '|' + self.ui.lineEdit_cr_nar_kolvo.text() + \
                       '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + self.ui.comboBox_cr_nar_etap.currentText() + \
-                      '|||||||||||' + "\n")
+                      '||||||||||' + nom_op + '|' + "\n")
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
                 f.write(item)

@@ -242,7 +242,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_10.addWidget(self.label_2)
         self.plainTextEdit_zadanie = QtWidgets.QPlainTextEdit(self.tab)
         self.plainTextEdit_zadanie.setMinimumSize(QtCore.QSize(666, 71))
-        self.plainTextEdit_zadanie.setMaximumSize(QtCore.QSize(16777215, 115))
+        self.plainTextEdit_zadanie.setMaximumSize(QtCore.QSize(16777215, 215))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.plainTextEdit_zadanie.setFont(font)
         self.plainTextEdit_zadanie.setPlainText("")
         self.plainTextEdit_zadanie.setObjectName("plainTextEdit_zadanie")
         self.verticalLayout_10.addWidget(self.plainTextEdit_zadanie)
@@ -608,7 +611,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
-        self.tabWidget_2.setCurrentIndex(0)
+        self.tabWidget_2.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
