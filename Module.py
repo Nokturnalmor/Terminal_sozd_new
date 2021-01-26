@@ -75,7 +75,7 @@ class mywindow(QtWidgets.QMainWindow):
         tabl_vib_oper.setSelectionBehavior(1)
         tabl_vib_oper.setSelectionMode(1)
         F.ust_cvet_videl_tab(tabl_vib_oper)
-        tabl_vib_oper.doubleClicked.connect(self.vvod_oper)
+        tabl_vib_oper.clicked.connect(self.vvod_oper)
 
         line_kolvo = self.ui.lineEdit_cr_nar_kolvo
         line_kolvo.textChanged.connect(self.rasch_norm_vr)
@@ -148,6 +148,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.comboBox_spis_users.setCurrentIndex(2)
 
     def rasch_norm_vr(self):
+        line_norma = self.ui.lineEdit_cr_nar_norma
         line_kolvo = self.ui.lineEdit_cr_nar_kolvo
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
         if line_kolvo.text().strip() == "":
@@ -160,21 +161,22 @@ class mywindow(QtWidgets.QMainWindow):
         t_pz = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),4).text().strip())
         t_sht = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),5).text().strip())
         koid = F.valm(tabl_sp_oper.item(tabl_sp_oper.currentRow(),9).text().strip())
+        if koid == 0:
+            return 0
         vr = t_pz+t_sht*kol/koid
-        return round(vr/60,1)
+        line_norma.setText(str(round(vr/60,2)))
+        return round(vr/60,2)
+
 
 
     def vvod_oper(self):
         '''
-        1.провеприть была ли эта операуия ранее в нарядах
-        1.1. проверить кол-во, ранее выданное
-
-        2.внести в текст
-            рассчитать норму времени с учетом кол-ва
-            найти номер проекта по номеру ПУ
+        2. ограничение по коду профессии код в ТП = КОд  работника
         3.вписать в МК все наряды по операциям этой детали.
+            3.1 как определить что все опереации выполнены
+        4. добавить внеплановые работы
+        5.
         '''
-
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
@@ -193,21 +195,28 @@ class mywindow(QtWidgets.QMainWindow):
         text_zad.setPlainText('')
         if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
             return
-
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
+        nom_det = tabl_mk.item(tabl_mk.currentRow(), 1).text().strip()
+        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
-
         nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
         if nom_pr == None:
             nom_pr = '*'
         line_nom_pr.setText(nom_pr)
         line_nom_pu.setText(nom_pu)
-        kolvo = int(tabl_mk.item(tabl_mk.currentRow(),10).text().strip())
-        line_kolvo.setText(str(kolvo))
-        norm_vr = self.rasch_norm_vr()
-        line_norma.setText(str(norm_vr))
-        line_dse.setText(tabl_mk.item(tabl_mk.currentRow(),1).text().strip())
+        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
+        kolvo = self.poisk_nar_po_op(nom_mk, id_dse, nom_op)
 
-        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
+        line_kolvo.setText(str(kolvo))
+
+        norm_vr = self.rasch_norm_vr()
+
+
+        line_dse.setText(nom_det)
+
+
+
+
         naim_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),0).text().strip()
         nom_rc = tabl_sp_oper.item(tabl_sp_oper.currentRow(),2).text().strip()
         naim_ob = tabl_sp_oper.item(tabl_sp_oper.currentRow(),3).text().strip()
@@ -829,10 +838,73 @@ class mywindow(QtWidgets.QMainWindow):
                 self.ui.tableWidget_tabl_komplektovki.columnCount() - 2, 0)
 
 
+    def poisk_nar_po_op(self,nom_mar,id_dse,nom_op,zakr=False):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        sp_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
+        sp_zhur = F.otkr_f(F.tcfg('BDzhurnal'),False,'|')
+
+        if sp_nar == ['']:
+            showDialog('Не найдена база с нарядами')
+            return
+
+        max_det = int(tabl_mk.item(tabl_mk.currentRow(), 2).text().strip())
+        summ_det = 0
+        for i in range(len(sp_nar)):
+            if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op:
+                if zakr == True:
+                    mn = []
+                    flag = 1
+                    for j in range(len(sp_zhur)):
+                        if sp_zhur[j][2] == sp_nar[i][0]:
+                            mn.append(sp_zhur[j][3])
+                    if len(mn) > 0:
+                        mn = set(mn)
+                        mn = list(mn)
+                        for j in range(len(sp_zhur)):
+                            if sp_zhur[j][2] == sp_nar[i][0] and sp_zhur[j][7] == 'Завершен':
+                                if sp_zhur[j][3] in mn:
+                                    mn.remove(sp_zhur[j][3])
+                            if len(mn) == 0:
+                                flag = 0
+                                break
+                        if flag == 0:
+                            summ_det+= F.valm(sp_nar[i][12].strip())
+                else:
+                    summ_det += F.valm(sp_nar[i][12].strip())
+        return max_det - summ_det
+
+
+
     def sozd_naryad(self):
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
+
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+
+        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
+        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
+
+        kol = int(line_kolvo.text().strip())
+        if kol == 0:
+            showDialog(self, 'Количество не может быть 0')
+            return
+
+        if kol > self.poisk_nar_po_op(nom_mk, id_dse, nom_op):
+            showDialog(self, 'Кол-во деталей превышет допустимое')
+            return
+        else:
+            if tabl_sp_oper.currentRow() > 0:
+                for i in range(tabl_sp_oper.currentRow()-1,-1,-1):
+                    if tabl_sp_oper.item(i, 12).text().strip() != '2':
+                        break
+                nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
+                if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p,True) > 0:
+                    showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
+                    return
+
+
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.checkBox_vecher.checkState() == 1:
@@ -922,16 +994,14 @@ class mywindow(QtWidgets.QMainWindow):
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
         nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
-        line_kolvo = self.ui.lineEdit_cr_nar_kolvo
-        kol = int(line_kolvo.text().strip())
+
         ves_det = F.valm(tabl_mk.item(tabl_mk.currentRow(),8).text()) * kol
         ves_det = round(ves_det,1)
         sp_BD_Proect = F.otkr_f(F.tcfg('BD_Proect'),False,'|')
 
         vid_pr = F.naiti_v_spis_2_1(sp_BD_Proect,1,nom_pu,0,nom_pr,2)
 
-
-
+        id_dse = tabl_mk.item(tabl_mk.currentRow(),6).text()
 
 
         Stroki.append(str(nom) + "|" + str(nom_mk) + "|" + DT.today().strftime("%d.%m.%Y %H:%M:%S") + '|' +\
@@ -941,7 +1011,7 @@ class mywindow(QtWidgets.QMainWindow):
                       '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '|' + str(ves_det) + '|' + vid_pr +  \
                       '|' + self.ui.lineEdit_cr_nar_kolvo.text() + \
                       '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + self.ui.comboBox_cr_nar_etap.currentText() + \
-                      '||||||||||' + nom_op + '|' + "\n")
+                      '||||||||||' + nom_op + '|' + id_dse + '|' + "\n")
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
                 f.write(item)
