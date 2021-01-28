@@ -22,6 +22,9 @@ def showDialog(self, msg):
     msgBox.setWindowTitle("Внимание!")
     msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)  # | QtWidgets.QMessageBox.Cancel)
     returnValue = msgBox.exec()
+    # msgBox.buttonClicked.connect(msgButtonClick)
+    # if returnValue == QtWidgets.QMessageBox.Ok:
+    # print('OK clicked')
 
 class mywindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -100,8 +103,13 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.radioButton_ispoln1.setChecked(True)
         self.ui.checkBox.setCheckState(1)
         self.ui.checkBox_vecher.setCheckState(1)
+        self.ui.checkBox_vneplan_rab.setTristate(False)
+        self.ui.checkBox_vneplan_rab.stateChanged.connect(self.check_vneplan_rab)
         self.ui.lineEdit_cr_nar_nom_proect.setEnabled(False)
         self.ui.lineEdit_cr_nar_nomerPU.setEnabled(False)
+        self.ui.lineEdit_cr_nar_norma.setEnabled(False)
+        self.ui.lineEdit_cr_nar_pozicii.setEnabled(False)
+        self.ui.plainTextEdit_zadanie.setEnabled(False)
         self.ui.pushButton_primen_correctirovky.setEnabled(False)
         self.ui.tableWidget_vibor_imeni_sla_nar.setSortingEnabled(True)
         self.ui.tableWidget_tabl_komplektovki.setSortingEnabled(True)
@@ -167,11 +175,28 @@ class mywindow(QtWidgets.QMainWindow):
         line_norma.setText(str(round(vr/60,2)))
         return round(vr/60,2)
 
-
+    def check_vneplan_rab(self):
+        chek_vneplan = self.ui.checkBox_vneplan_rab
+        if chek_vneplan.checkState() == 2:
+            self.ui.lineEdit_cr_nar_nom_proect.setEnabled(True)
+            self.ui.lineEdit_cr_nar_nomerPU.setEnabled(True)
+            self.ui.lineEdit_cr_nar_norma.setEnabled(True)
+            self.ui.lineEdit_cr_nar_pozicii.setEnabled(True)
+            self.ui.plainTextEdit_zadanie.setEnabled(True)
+        else:
+            self.ui.lineEdit_cr_nar_nom_proect.setEnabled(False)
+            self.ui.lineEdit_cr_nar_nomerPU.setEnabled(False)
+            self.ui.lineEdit_cr_nar_norma.setEnabled(False)
+            self.ui.lineEdit_cr_nar_pozicii.setEnabled(False)
+            self.ui.plainTextEdit_zadanie.setEnabled(False)
+            self.ui.lineEdit_cr_nar_nom_proect.clear()
+            self.ui.lineEdit_cr_nar_nomerPU.clear()
+            self.ui.lineEdit_cr_nar_norma.clear()
+            self.ui.lineEdit_cr_nar_pozicii.clear()
+            self.ui.plainTextEdit_zadanie.clear()
 
     def vvod_oper(self):
         '''
-        2. ограничение по коду профессии код в ТП = КОд  работника
         3.вписать в МК все наряды по операциям этой детали.
             3.1 как определить что все опереации выполнены
         4. добавить внеплановые работы
@@ -186,6 +211,8 @@ class mywindow(QtWidgets.QMainWindow):
         line_norma = self.ui.lineEdit_cr_nar_norma
         line_dse = self.ui.lineEdit_cr_nar_pozicii
         text_zad = self.ui.plainTextEdit_zadanie
+        chek_vneplan = self.ui.checkBox_vneplan_rab
+        self.check_vneplan_rab()
 
         line_nom_pr.setText('')
         line_nom_pu.setText('')
@@ -193,6 +220,9 @@ class mywindow(QtWidgets.QMainWindow):
         line_norma.setText('')
         line_dse.setText('')
         text_zad.setPlainText('')
+        chek_vneplan.setCheckState(0)
+
+
         if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
@@ -465,18 +495,13 @@ class mywindow(QtWidgets.QMainWindow):
     def nekomplekt(self):
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
         for i in range(0, len(Stroki_nar)):
-            if Stroki_nar[i].startswith(Nom_nar) == True:
-                arr_nar = Stroki_nar[i].split("|")
-                arr_nar[15] = ''
-                arr_nar[16] = ''
-                Stroki_nar[i] = "|".join(arr_nar)
+            if Stroki_nar[i][0] == Nom_nar:
+                Stroki_nar[i][15]=''
+                Stroki_nar[i][16]=''
                 break
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
-            for item in Stroki_nar:
-                f.write(item)
+        F.zap_f(F.tcfg('Naryad'),Stroki_nar,'|')
         self.showDialog('Наряд ' + Nom_nar + ' отмечен - некомплект')
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki_nar = f.readlines()
@@ -490,18 +515,13 @@ class mywindow(QtWidgets.QMainWindow):
     def komplektovano(self):
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
-        for i in range(0,len(Stroki_nar)):
-            if Stroki_nar[i].startswith(Nom_nar) == True:
-                arr_nar = Stroki_nar[i].split("|")
-                arr_nar[15] = self.windowTitle()
-                arr_nar[16] = DT.today().strftime("%d.%m.%Y %H:%M:%S")
-                Stroki_nar[i] = "|".join(arr_nar)
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        for i in range(0, len(Stroki_nar)):
+            if Stroki_nar[i][0] == Nom_nar:
+                Stroki_nar[i][15] = self.windowTitle()
+                Stroki_nar[i][16] = DT.today().strftime("%d.%m.%Y %H:%M:%S")
                 break
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
-            for item in Stroki_nar:
-                f.write(item)
+        F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         self.showDialog('Наряд ' + Nom_nar + ' скомплектован под сборку')
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki_nar = f.readlines()
@@ -517,15 +537,12 @@ class mywindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.ui.tableWidget_spispk_nar_dla_korrect.currentItem().text())
         i = self.ui.tableWidget_spispk_nar_dla_korrect.currentRow()
         Nom_nar = self.ui.tableWidget_spispk_nar_dla_korrect.item(i, 0).text()
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki = f.readlines()
-        for i in range(0,len(Stroki)):
-            if Stroki[i].startswith(Nom_nar) == True:
-                Stroki.pop(i)
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        for i in range(0, len(Stroki_nar)):
+            if Stroki_nar[i][0] == Nom_nar:
+                Stroki_nar.pop(i)
                 break
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
-            for item in Stroki:
-                f.write(item)
+        F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         self.showDialog('Наряд ' + Nom_nar + ' удален')
         self.corr_ne_nach()
         return
@@ -534,21 +551,17 @@ class mywindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage(self.ui.tableWidget_spispk_nar_dla_korrect.currentItem().text())
         i = self.ui.tableWidget_spispk_nar_dla_korrect.currentRow()
         Nom_nar = self.ui.tableWidget_spispk_nar_dla_korrect.item(i, 0).text()
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki = f.readlines()
-        for i in range(0,len(Stroki)):
-            if Stroki[i].startswith(Nom_nar) == True:
-                arr = Stroki[i].split("|")
-                fio1 = arr[17]
-                fio2 = arr[18]
-                arr[17] = ''
-                arr[18] = ''
-
-                Stroki[i] = '|'.join(arr)
+        fio1 = ''
+        fio2 = ''
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        for i in range(0, len(Stroki_nar)):
+            if Stroki_nar[i][0] == Nom_nar:
+                fio1 = Stroki_nar[i][17]
+                fio2 = Stroki_nar[i][18]
+                Stroki_nar[i][17] = ''
+                Stroki_nar[i][18] = ''
                 break
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
-            for item in Stroki:
-                f.write(item)
+        F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         self.showDialog('ФИО в наряде ' + Nom_nar + ' удалены: ' + fio1 + '; '+ fio2)
         self.ui.tabWidget.setCurrentIndex(0)
         return
@@ -686,9 +699,42 @@ class mywindow(QtWidgets.QMainWindow):
                 f.write(item + '\n')
         self.showDialog('Обновлено')
 
+    def prof_ispolnit(self,fio):
+        sp_emp = F.otkr_f(F.tcfg('employee'),True,',')
+        if sp_emp == ['']:
+            showDialog(self,'Не найден employee')
+            return
+        sp_bd_prof = F.otkr_f(F.scfg('cash') + os.sep + 'bd_prof.txt',False,"|")
+        if sp_bd_prof == ['']:
+            showDialog(self,'Не найден sp_bd_prof')
+            return
+        doljn_emp= ''
+        for i in range(len(sp_emp)):
+            fio_temp = " ".join(sp_emp[i])
+            if fio == fio_temp:
+                doljn_emp = sp_emp[i][3]
+                break
+        if doljn_emp == '':
+            return None
+        for i in range(len(sp_bd_prof)):
+            if doljn_emp == sp_bd_prof[i][1]:
+                return sp_bd_prof[i][0]
+        return False
 
+    def prof_po_bd(self,kod):
+        sp_bd_prof = F.otkr_f(F.scfg('cash') + os.sep + 'bd_prof.txt', False, "|")
+        if sp_bd_prof == ['']:
+            showDialog(self, 'Не найден sp_bd_prof')
+            return
+        for i in range(len(sp_bd_prof)):
+            if kod == sp_bd_prof[i][0]:
+                return sp_bd_prof[i][1]
+        return None
 
     def primenit_imena(self):
+        tabl_vib_nar = self.ui.tableWidget_vibor_nar_dlya_imen
+        label_isp1 = self.ui.label_12_ispoln1
+        label_isp2 = self.ui.label_13_ispoln2
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.label_12_ispoln1.text() == '' and self.ui.label_13_ispoln2.text() == '':
@@ -697,20 +743,55 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.label_10_vibr_nar.text() == '':
             self.showDialog('Не выбран наряд')
             return
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
-        for i in range(0,len(Stroki_nar)):
-            if Stroki_nar[i].startswith(self.ui.label_10_vibr_nar.text()+'|') == True:
-                arr = [x.strip() for x in Stroki_nar[i].split("|")]
-                arr[17] = self.ui.label_12_ispoln1.text()
-                arr[18] = self.ui.label_13_ispoln2.text()
-                Stroki_nar[i] = "|".join(arr)
-                Stroki_nar[i] = Stroki_nar[i] + '\n'
-                with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
-                    for item in Stroki_nar:
-                        f.write(item)
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki = f.readlines()
+        Stroki_nar = F.otkr_f(F.scfg('Naryad') + os.sep + 'Naryad.txt',False,'|')
+        nom_nar = tabl_vib_nar.item(tabl_vib_nar.currentRow(), 0).text()
+        nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar,0,nom_nar,26)
+        kol_rab = F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27)
+
+        ima1 = label_isp1.text().replace('  ',' ')
+        ima2 = label_isp2.text().replace('  ',' ')
+        kol_rab_vib = 0
+        if ima1 != "":
+            kol_rab_vib += 1
+        if ima2 != "" and ima2 != ima1:
+            kol_rab_vib += 1
+        if kol_rab != kol_rab_vib:
+            showDialog(self, 'Количество работников должно быть ' + kol_rab )
+            return
+
+        if ima1 != '':
+            nomer_porof_po_isp = self.prof_ispolnit(ima1)
+            if nomer_porof_po_isp == False:
+                showDialog(self, 'Не найден в sp_bd_prof')
+                return
+            if nomer_porof_po_isp == None:
+                showDialog(self, 'Не найден в sp_emp')
+                return
+            if nom_prof_nar != nomer_porof_po_isp:
+                ima_prof_po_bd = self.prof_po_bd(nom_prof_nar)
+                showDialog(self,'Профессия ' + ima1 + ' должна быть ' + ima_prof_po_bd)
+                return
+        if ima1 != '':
+            nomer_porof_po_isp = self.prof_ispolnit(ima2)
+            if nomer_porof_po_isp == False:
+                showDialog(self, 'Не найден в sp_bd_prof')
+                return
+            if nomer_porof_po_isp == None:
+                showDialog(self, 'Не найден в sp_emp')
+                return
+            if nom_prof_nar != nomer_porof_po_isp:
+                ima_prof_po_bd = self.prof_po_bd(nom_prof_nar)
+                showDialog(self,'Профессия ' + ima2 + ' должна быть ' + ima_prof_po_bd)
+                return
+
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        for i in range(0, len(Stroki_nar)):
+            if Stroki_nar[i][0] == self.ui.label_10_vibr_nar.text():
+                Stroki_nar[i][17] = self.ui.label_12_ispoln1.text()
+                Stroki_nar[i][18] = self.ui.label_13_ispoln2.text()
+                break
+        F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '')
         filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 16, 17, 18}
         ogr_shir = int(cfg['ogran_shir'])
         iskl_slov = {16: "", 17: "*", 18: "*"}
@@ -880,29 +961,33 @@ class mywindow(QtWidgets.QMainWindow):
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
         line_kolvo = self.ui.lineEdit_cr_nar_kolvo
-
+        chek_vneplan = self.ui.checkBox_vneplan_rab
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
 
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
+        kr_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 7).text().strip()
+        koid_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 9).text().strip()
         id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
 
-        kol = int(line_kolvo.text().strip())
-        if kol == 0:
-            showDialog(self, 'Количество не может быть 0')
-            return
 
-        if kol > self.poisk_nar_po_op(nom_mk, id_dse, nom_op):
-            showDialog(self, 'Кол-во деталей превышет допустимое')
-            return
-        else:
-            if tabl_sp_oper.currentRow() > 0:
-                for i in range(tabl_sp_oper.currentRow()-1,-1,-1):
-                    if tabl_sp_oper.item(i, 12).text().strip() != '2':
-                        break
-                nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
-                if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p,True) > 0:
-                    showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
-                    return
+        kol = int(line_kolvo.text().strip())
+
+        if chek_vneplan.checkState() == 0:
+            if kol == 0:
+                showDialog(self, 'Количество не может быть 0')
+                return
+            if kol > self.poisk_nar_po_op(nom_mk, id_dse, nom_op):
+                showDialog(self, 'Кол-во деталей превышет допустимое')
+                return
+            else:
+                if tabl_sp_oper.currentRow() > 0:
+                    for i in range(tabl_sp_oper.currentRow()-1,-1,-1):
+                        if tabl_sp_oper.item(i, 12).text().strip() != '2':
+                            break
+                    nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
+                    if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p,True) > 0:
+                        showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
+                        return
 
 
         if self.windowTitle() == "Создание нарядов":
@@ -919,10 +1004,13 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.lineEdit_cr_nar_nomerPU.text() == "":
             self.Migat(3,self.ui.lineEdit_cr_nar_nomerPU ,"Не заполнено номер заявки")
             return
-        if self.ui.lineEdit_cr_nar_norma.text() == "" or float(self.ui.lineEdit_cr_nar_norma.text()) <= 0:
-            self.Migat(3,self.ui.lineEdit_cr_nar_norma ,"Не заполнена норма времени")
+        if self.ui.lineEdit_cr_nar_norma.text() == "":
+            self.Migat(3, self.ui.lineEdit_cr_nar_norma, "Не заполнена норма времени")
             return
-        self.ui.lineEdit_cr_nar_norma.setText(self.ui.lineEdit_cr_nar_norma.text().replace(',','.'))
+        self.ui.lineEdit_cr_nar_norma.setText(str(float(self.ui.lineEdit_cr_nar_norma.text().replace(',', '.'))))
+        if float(self.ui.lineEdit_cr_nar_norma.text()) == 0:
+            self.Migat(3, self.ui.lineEdit_cr_nar_norma, "Норма не может быть 0")
+            return
         if FCN.is_digit(self.ui.lineEdit_cr_nar_norma.text()) == False:
             self.Migat(3, self.ui.lineEdit_cr_nar_norma, "Введено не число")
             return
@@ -957,30 +1045,30 @@ class mywindow(QtWidgets.QMainWindow):
             primechanie = ''
 
         sv_ur = ''
-        if self.ui.comboBox_cr_nar_etap.currentText == 'Сборка+сварка':
-            if primechanie == '':
-                norma = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 5).text()
-                fakt = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).text()
-            else:
-                norma = "99999"
-                fakt = "0"
-
-            norma = float(norma.replace('&','').replace(',','.'))
-            fakt = float(fakt.replace(',','.'))
-
-            tek_norma = float(self.ui.lineEdit_cr_nar_norma.text().replace(',','.'))
-            if round(norma-tek_norma-fakt,2) < 0:
-                if fakt >= norma:
-                    sv_ur = str(round(tek_norma,2))
-                else:
-                    sv_ur = str(round(tek_norma + fakt - norma, 2))
-                self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).setText(str(round(tek_norma + fakt,2)))
+        #if self.ui.comboBox_cr_nar_etap.currentText == 'Сборка+сварка':
+        #    if primechanie == '':
+        #        norma = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 5).text()
+        #        fakt = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).text()
+        #    else:
+        #        norma = "99999"
+        #        fakt = "0"
+        #
+        #    norma = float(norma.replace('&','').replace(',','.'))
+        #    fakt = float(fakt.replace(',','.'))
+        #
+        #    tek_norma = float(self.ui.lineEdit_cr_nar_norma.text().replace(',','.'))
+        #    if round(norma-tek_norma-fakt,2) < 0:
+        #        if fakt >= norma:
+        #            sv_ur = str(round(tek_norma,2))
+        #        else:
+        #            sv_ur = str(round(tek_norma + fakt - norma, 2))
+        #        self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).setText(str(round(tek_norma + fakt,2)))
 
 
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki = f.readlines()
         arr_item = [x.strip() for x in Stroki[-1].split("|")]
-        nom = int(arr_item[0]) +1
+        nom = int(arr_item[0]) + 1
         if self.ui.checkBox.checkState() == 2:
             vid_narad = 'Последний'
         else:
@@ -994,7 +1082,7 @@ class mywindow(QtWidgets.QMainWindow):
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
         nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
-
+        kod_prof = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 6).text().strip()
         ves_det = F.valm(tabl_mk.item(tabl_mk.currentRow(),8).text()) * kol
         ves_det = round(ves_det,1)
         sp_BD_Proect = F.otkr_f(F.tcfg('BD_Proect'),False,'|')
@@ -1011,7 +1099,7 @@ class mywindow(QtWidgets.QMainWindow):
                       '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '|' + str(ves_det) + '|' + vid_pr +  \
                       '|' + self.ui.lineEdit_cr_nar_kolvo.text() + \
                       '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + self.ui.comboBox_cr_nar_etap.currentText() + \
-                      '||||||||||' + nom_op + '|' + id_dse + '|' + "\n")
+                      '||||||||||' + nom_op + '|' + id_dse + '|' + kod_prof + '|' + kr_op + '|' + koid_op + '|' + "\n")
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
                 f.write(item)
@@ -1027,30 +1115,31 @@ class mywindow(QtWidgets.QMainWindow):
 
 
 
-    def tabl_vibor_proekta(self):
-        self.statusBar().showMessage(self.ui.tableWidget_vibpr_proekta.currentItem().text())
-        i = self.ui.tableWidget_vibpr_proekta.currentRow()
-        if ' по наряду №' in self.ui.tableWidget_vibpr_proekta.item(i, 8).text() and \
-                self.ui.tableWidget_vibpr_proekta.item(i, 6).text() == '':
-            n_nar_arr = self.ui.tableWidget_vibpr_proekta.item(i, 8).text().split(" по наряду №")
-            n_nar_arr2 =  n_nar_arr[1].split("(")
-            n_nar = n_nar_arr2[0]
-            self.ui.plainTextEdit_zadanie.setStatusTip(FCN.nomer_proekt_po_nom_nar(n_nar,17) + ", " + \
-                                                       FCN.nomer_proekt_po_nom_nar(n_nar,18))
-            self.ui.plainTextEdit_zadanie.setPlainText(FCN.nomer_proekt_po_nom_nar(n_nar,4))
-            self.ui.lineEdit_cr_nar_kolvo.setText(FCN.nomer_proekt_po_nom_nar(n_nar,12))
-            self.ui.lineEdit_cr_nar_pozicii.setText(FCN.nomer_proekt_po_nom_nar(n_nar,13))
-            self.ui.lineEdit_cr_nar_norma.setText(FCN.nomer_proekt_po_nom_nar(n_nar,5))
-            self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
-            self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
-        else:
-            self.ui.plainTextEdit_zadanie.setStatusTip('')
-            self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
-            self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
-            self.ui.plainTextEdit_zadanie.clear()
-            self.ui.lineEdit_cr_nar_kolvo.clear()
-            self.ui.lineEdit_cr_nar_pozicii.clear()
-            self.ui.lineEdit_cr_nar_norma.clear()
+    #def tabl_vibor_proekta(self):
+    #    self.statusBar().showMessage(self.ui.tableWidget_vibpr_proekta.currentItem().text())
+    #    i = self.ui.tableWidget_vibpr_proekta.currentRow()
+    #    if ' по наряду №' in self.ui.tableWidget_vibpr_proekta.item(i, 8).text() and \
+    #            self.ui.tableWidget_vibpr_proekta.item(i, 6).text() == '':
+    #        n_nar_arr = self.ui.tableWidget_vibpr_proekta.item(i, 8).text().split(" по наряду №")
+    #        n_nar_arr2 =  n_nar_arr[1].split("(")
+    #        n_nar = n_nar_arr2[0]
+    #        self.ui.plainTextEdit_zadanie.setStatusTip(FCN.nomer_proekt_po_nom_nar(n_nar,17) + ", " + \
+    #                                                   FCN.nomer_proekt_po_nom_nar(n_nar,18))
+    #        self.ui.plainTextEdit_zadanie.setPlainText(FCN.nomer_proekt_po_nom_nar(n_nar,4))
+    #        self.ui.lineEdit_cr_nar_kolvo.setText(FCN.nomer_proekt_po_nom_nar(n_nar,12))
+    #        self.ui.lineEdit_cr_nar_pozicii.setText(FCN.nomer_proekt_po_nom_nar(n_nar,13))
+    #        self.ui.lineEdit_cr_nar_norma.setText(FCN.nomer_proekt_po_nom_nar(n_nar,5))
+    #        self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
+    #        self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
+    #    else:
+    #        self.ui.plainTextEdit_zadanie.setStatusTip('')
+    #        self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
+    #        self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
+    #        self.ui.plainTextEdit_zadanie.clear()
+    #        self.ui.lineEdit_cr_nar_kolvo.clear()
+    #        self.ui.lineEdit_cr_nar_pozicii.clear()
+    #        self.ui.lineEdit_cr_nar_norma.clear()
+
 
     def Migat(self, chislo, widhet, msg, koef=0.3):
         self.showDialog(msg)
@@ -1073,7 +1162,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Создание нарядов")
         self.ui.lineEdit_Nparol.setVisible(False)
         self.ui.lineEdit_Nparol2.setVisible(False)
-        self.ui.tableWidget_vibpr_proekta.clear()
+        #self.ui.tableWidget_vibpr_proekta.clear()
         self.ui.lineEdit_cr_nar_kolvo.clear()
         self.ui.lineEdit_cr_nar_nom_proect.clear()
         self.ui.lineEdit_cr_nar_nomerPU.clear()
@@ -1091,10 +1180,6 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.label_10_vibr_nar.clear()
         self.ui.tableWidget_spispk_nar_dla_korrect.clear()
         self.ui.pushButton_primen_correctirovky.setEnabled(False)
-
-
-
-
         return
 
     def Smena_Parol(self):
@@ -1143,7 +1228,6 @@ class mywindow(QtWidgets.QMainWindow):
         return
 
     def log_in(self):
-
         if self.ui.lineEdit_parol.text() == "":
             return
         if self.windowTitle() != "Создание нарядов":
@@ -1243,22 +1327,7 @@ class mywindow(QtWidgets.QMainWindow):
 
 
 
-    def showDialog(self, msg):
-        msgBox = QtWidgets.QMessageBox()
-        msgBox.setIcon(QtWidgets.QMessageBox.Information)
-        msgBox.setText(msg)
-        msgBox.setWindowTitle("Внимание!")
-        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)  # | QtWidgets.QMessageBox.Cancel)
-        # msgBox.buttonClicked.connect(msgButtonClick)
-        returnValue = msgBox.exec()
-        # if returnValue == QtWidgets.QMessageBox.Ok:
-        # print('OK clicked')
-
     def Reg_new_user(self):
-
-        #if self.windowTitle().replace('  ', ',') != 'Беляков,Антон,Геннадьевич,Главный технолог':
-        #    self.showDialog("Нет прав")
-        #    return
         flag_nalich = 0
         ima = self.ui.comboBox_spis_users.currentText()
         ima = ima.replace('  ', ',')
@@ -1269,7 +1338,7 @@ class mywindow(QtWidgets.QMainWindow):
                 flag_nalich = line.strip()
                 break
         if flag_nalich != 0:
-            New_dannie = "Пользоватлеь уже зарегистрирован " + flag_nalich
+            New_dannie = "Пользователь уже зарегистрирован " + flag_nalich
             self.showDialog(New_dannie)
             return
 

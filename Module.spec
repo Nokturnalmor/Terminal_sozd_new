@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['Module.py'],
-             pathex=['D:\\Python\\Terminal2'],
+             pathex=['P:\\Python\\Terminal3'],
              binaries=[],
              datas=[],
              hiddenimports=[],
