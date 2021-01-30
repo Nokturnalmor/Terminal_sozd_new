@@ -117,11 +117,11 @@ class mywindow(QtWidgets.QMainWindow):
         # =====================================================проверка файлов
         for item in proverka_list_puti:
             if FCN.proverka_nalichie_puti(item) == False:
-                self.showDialog("Не найден " + item)
+                showDialog(self,"Не найден " + item)
                 sys.exit(app.exec())
         for item in proverka_list_znach:
             if FCN.proverka_nalichie_znach(item) == False:
-                self.showDialog("Не найден " + item)
+                showDialog(self,"Не найден " + item)
                 sys.exit(app.exec())
         # =====================================================
 
@@ -223,7 +223,15 @@ class mywindow(QtWidgets.QMainWindow):
         chek_vneplan.setCheckState(0)
 
 
+
+
         if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
+            return
+        if tabl_mk.currentRow() == -1:
+            showDialog(self,'Не выбрана дсе')
+            return
+        if tabl_sp_mk.currentRow() == -1:
+            showDialog(self,'Не выбрана мк')
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
         nom_det = tabl_mk.item(tabl_mk.currentRow(), 1).text().strip()
@@ -235,7 +243,7 @@ class mywindow(QtWidgets.QMainWindow):
         line_nom_pr.setText(nom_pr)
         line_nom_pu.setText(nom_pu)
         id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
-        kolvo = self.poisk_nar_po_op(nom_mk, id_dse, nom_op)
+        kolvo = self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op)
 
         line_kolvo.setText(str(kolvo))
 
@@ -243,9 +251,6 @@ class mywindow(QtWidgets.QMainWindow):
 
 
         line_dse.setText(nom_det)
-
-
-
 
         naim_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),0).text().strip()
         nom_rc = tabl_sp_oper.item(tabl_sp_oper.currentRow(),2).text().strip()
@@ -407,9 +412,11 @@ class mywindow(QtWidgets.QMainWindow):
     def vibor_mk(self):
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        if tabl_sp_mk.currentRow() == -1:
+            return
         nom = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
         if F.nalich_file(F.scfg('mk_data') + os.sep + nom + '.txt') == False:
-            showDialog(self, 'Не обнаржун файл')
+            showDialog(self, 'Не обнаружен файл')
             return
         sp = F.otkr_f(F.scfg('mk_data') + os.sep + nom + '.txt',False,'|')
         if sp == []:
@@ -423,10 +430,14 @@ class mywindow(QtWidgets.QMainWindow):
 
     def oformlenie_sp_pod_mk(self,s):
         for j in s:
-            for i in range(10, len(s[0])):
+            for i in range(11, len(s[0]),4):
                 if '$' in j[i]:
                     vrem, oper1, oper2 = [x for x in j[i].split("$")]
                     j[i] = vrem + '\n' + oper1 + '\n' + oper2
+            for i in range(13, len(s[0]),4):
+                if '$' in j[i]:
+                    j[i] = j[i].replace('$','\n')
+
         return s
 
     def uroven(self,strok):
@@ -461,6 +472,22 @@ class mywindow(QtWidgets.QMainWindow):
                         F.dob_color_wtab(tabl_mk, i - 1, j, 0, 127, 0)
                     else:
                         F.dob_color_wtab(tabl_mk, i - 1, j, 37, 17, 0)
+                if tabl_mk.item(i - 1, j+1).text() != '':
+                    arr = tabl_mk.item(i - 1, j+1).text().strip().split('\n')
+                    flag = 0
+                    for k in range(len(arr)):
+                        arr2 = arr[k].split(' ')
+                        if arr2[1] == 'Начат':
+                            flag = 1
+                            break
+                        if arr2[1] == 'Создан' or arr2[1] == 'Выдан':
+                            flag = 2
+                    if flag == 1:
+                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)
+                    if flag == 0:
+                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0)
+
+
 
     def poisk_mk(self):
         obr = self.ui.lineEdit_mk.text()
@@ -502,7 +529,7 @@ class mywindow(QtWidgets.QMainWindow):
                 Stroki_nar[i][16]=''
                 break
         F.zap_f(F.tcfg('Naryad'),Stroki_nar,'|')
-        self.showDialog('Наряд ' + Nom_nar + ' отмечен - некомплект')
+        showDialog(self,'Наряд ' + Nom_nar + ' отмечен - некомплект')
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki_nar = f.readlines()
         filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
@@ -522,7 +549,7 @@ class mywindow(QtWidgets.QMainWindow):
                 Stroki_nar[i][16] = DT.today().strftime("%d.%m.%Y %H:%M:%S")
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
-        self.showDialog('Наряд ' + Nom_nar + ' скомплектован под сборку')
+        showDialog(self,'Наряд ' + Nom_nar + ' скомплектован под сборку')
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki_nar = f.readlines()
         filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
@@ -540,11 +567,17 @@ class mywindow(QtWidgets.QMainWindow):
         Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
         for i in range(0, len(Stroki_nar)):
             if Stroki_nar[i][0] == Nom_nar:
+                nom_mk = Stroki_nar[i][1]
+                id_dse = Stroki_nar[i][25]
+                nom_op = Stroki_nar[i][24]
                 Stroki_nar.pop(i)
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
-        self.showDialog('Наряд ' + Nom_nar + ' удален')
+        showDialog(self,'Наряд ' + Nom_nar + ' удален')
         self.corr_ne_nach()
+        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
+        self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
+        self.vibor_mk()
         return
 
     def delete_fio(self):
@@ -560,10 +593,17 @@ class mywindow(QtWidgets.QMainWindow):
                 fio2 = Stroki_nar[i][18]
                 Stroki_nar[i][17] = ''
                 Stroki_nar[i][18] = ''
+
+                nom_mk = Stroki_nar[i][1]
+                id_dse = Stroki_nar[i][25]
+                nom_op = Stroki_nar[i][24]
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
-        self.showDialog('ФИО в наряде ' + Nom_nar + ' удалены: ' + fio1 + '; '+ fio2)
+        showDialog(self,'ФИО в наряде ' + Nom_nar + ' удалены: ' + fio1 + '; '+ fio2)
         self.ui.tabWidget.setCurrentIndex(0)
+        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
+        self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
+        self.vibor_mk()
         return
 
 
@@ -639,7 +679,7 @@ class mywindow(QtWidgets.QMainWindow):
         Set_zh = set()
         for item in Stroki_BDj:
             if item.count('|') < 8:
-                self.showDialog('Некорректная строка ' + item + ' в BDzhurnal.txt')
+                showDialog(self,'Некорректная строка ' + item + ' в BDzhurnal.txt')
                 exit()
             arr = item.split("|")
             Set_zh.add(arr[2])
@@ -697,14 +737,14 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Opovesh'] + '\\Opovesh.txt', 'w') as f:
             for item in arr:
                 f.write(item + '\n')
-        self.showDialog('Обновлено')
+        showDialog(self,'Обновлено')
 
     def prof_ispolnit(self,fio):
         sp_emp = F.otkr_f(F.tcfg('employee'),True,',')
         if sp_emp == ['']:
             showDialog(self,'Не найден employee')
             return
-        sp_bd_prof = F.otkr_f(F.scfg('cash') + os.sep + 'bd_prof.txt',False,"|")
+        sp_bd_prof = F.otkr_f(F.scfg('bd_prof') + os.sep + 'bd_prof.txt',False,"|")
         if sp_bd_prof == ['']:
             showDialog(self,'Не найден sp_bd_prof')
             return
@@ -722,7 +762,7 @@ class mywindow(QtWidgets.QMainWindow):
         return False
 
     def prof_po_bd(self,kod):
-        sp_bd_prof = F.otkr_f(F.scfg('cash') + os.sep + 'bd_prof.txt', False, "|")
+        sp_bd_prof = F.otkr_f(F.scfg('bd_prof') + os.sep + 'bd_prof.txt', False, "|")
         if sp_bd_prof == ['']:
             showDialog(self, 'Не найден sp_bd_prof')
             return
@@ -738,15 +778,15 @@ class mywindow(QtWidgets.QMainWindow):
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.label_12_ispoln1.text() == '' and self.ui.label_13_ispoln2.text() == '':
-            self.showDialog('Не выбраны имена')
+            showDialog(self,'Не выбраны имена')
             return
         if self.ui.label_10_vibr_nar.text() == '':
-            self.showDialog('Не выбран наряд')
+            showDialog(self,'Не выбран наряд')
             return
         Stroki_nar = F.otkr_f(F.scfg('Naryad') + os.sep + 'Naryad.txt',False,'|')
         nom_nar = tabl_vib_nar.item(tabl_vib_nar.currentRow(), 0).text()
         nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar,0,nom_nar,26)
-        kol_rab = F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27)
+        kol_rab = int(F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27))
 
         ima1 = label_isp1.text().replace('  ',' ')
         ima2 = label_isp2.text().replace('  ',' ')
@@ -769,9 +809,11 @@ class mywindow(QtWidgets.QMainWindow):
                 return
             if nom_prof_nar != nomer_porof_po_isp:
                 ima_prof_po_bd = self.prof_po_bd(nom_prof_nar)
+                if ima_prof_po_bd == None:
+                    ima_prof_po_bd = 'другой'
                 showDialog(self,'Профессия ' + ima1 + ' должна быть ' + ima_prof_po_bd)
                 return
-        if ima1 != '':
+        if ima2 != '':
             nomer_porof_po_isp = self.prof_ispolnit(ima2)
             if nomer_porof_po_isp == False:
                 showDialog(self, 'Не найден в sp_bd_prof')
@@ -789,6 +831,9 @@ class mywindow(QtWidgets.QMainWindow):
             if Stroki_nar[i][0] == self.ui.label_10_vibr_nar.text():
                 Stroki_nar[i][17] = self.ui.label_12_ispoln1.text()
                 Stroki_nar[i][18] = self.ui.label_13_ispoln2.text()
+                nom_mk = Stroki_nar[i][1]
+                id_dse = Stroki_nar[i][25]
+                nom_op = Stroki_nar[i][24]
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '')
@@ -797,9 +842,14 @@ class mywindow(QtWidgets.QMainWindow):
         iskl_slov = {16: "", 17: "*", 18: "*"}
         self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_vibor_nar_dlya_imen, filtr_col, {}, [], iskl_slov, ogr_shir,
                          True)
-        self.showDialog('Наряд ' + str(self.ui.label_10_vibr_nar.text()) + ' заполнен')
+        showDialog(self,'Наряд ' + str(self.ui.label_10_vibr_nar.text()) + ' заполнен')
         self.obnovit_progress_imena()
         self.ui.tableWidget_spispk_nar_dla_korrect.clear()
+        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
+        self.otmetka_v_mk(nom_op, sp_nar, id_dse, str(nom_mk))
+        self.vibor_mk()
+
+
 
     def obnovit_progress_imena(self):
         rows = self.ui.tableWidget_vibor_imeni_sla_nar.rowCount()
@@ -868,14 +918,12 @@ class mywindow(QtWidgets.QMainWindow):
 
         if self.ui.tabWidget.currentIndex() == 0 or self.ui.tabWidget.currentIndex() == 2 or self.ui.tabWidget.currentIndex() == 4:
 
-            filtr_col = {0,2,3,4,7,11,12,13,14,16,17,18}
+            filtr_col = {0,2,3,4,7,11,12,13,14,16,26,27}
             ogr_shir = int(cfg['ogran_shir'])
             iskl_slov = {16: "", 17: "*", 18: "*"}
-            self.zapoln_tabl(Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen, filtr_col, {}, [], iskl_slov, ogr_shir, True)
-            self.ui.tableWidget_vibor_nar_dlya_imen.setColumnWidth(
-                self.ui.tableWidget_vibor_nar_dlya_imen.columnCount() - 1, 0)
-            self.ui.tableWidget_vibor_nar_dlya_imen.setColumnWidth(
-                self.ui.tableWidget_vibor_nar_dlya_imen.columnCount() - 2, 0)
+            F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen,filtr_col,0,'', iskl_slov,ogr_shir,True,'|')
+            #self.zapoln_tabl(Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen, filtr_col, {}, [], iskl_slov, ogr_shir, True)
+
 
             with open(cfg['employee'] + '\\employee.txt', 'r', encoding='utf-8') as f:
                 Stroki = f.readlines()
@@ -918,17 +966,27 @@ class mywindow(QtWidgets.QMainWindow):
             self.ui.tableWidget_tabl_komplektovki.setColumnWidth(
                 self.ui.tableWidget_tabl_komplektovki.columnCount() - 2, 0)
 
+    def max_det_skompl(self,nom_op):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        for i in range(11,tabl_mk.columnCount(),4):
+            if tabl_mk.item(tabl_mk.currentRow(), i).text().strip() != '':
+                obr = tabl_mk.item(tabl_mk.currentRow(), i).text().strip().split('Операции:\n')
+                obr2 = obr[-1].split(";")
+                if str(nom_op) in obr2:
+                    if tabl_mk.item(tabl_mk.currentRow(), i+1).text().strip() == '':
+                        return 0
+                    kompl = tabl_mk.item(tabl_mk.currentRow(), i+1).text().strip().split(' шт.')
+                    return int(kompl[0])
 
-    def poisk_nar_po_op(self,nom_mar,id_dse,nom_op,zakr=False):
+
+    def summ_dost_det_po_nar(self,nom_mar,id_dse,nom_op,zakr=False):
         tabl_mk = self.ui.tableWidget_vibor_det
         sp_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
         sp_zhur = F.otkr_f(F.tcfg('BDzhurnal'),False,'|')
-
         if sp_nar == ['']:
-            showDialog('Не найдена база с нарядами')
+            showDialog(self,'Не найдена база с нарядами')
             return
-
-        max_det = int(tabl_mk.item(tabl_mk.currentRow(), 2).text().strip())
+        max_det = self.max_det_skompl(nom_op)
         summ_det = 0
         for i in range(len(sp_nar)):
             if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op:
@@ -952,6 +1010,8 @@ class mywindow(QtWidgets.QMainWindow):
                             summ_det+= F.valm(sp_nar[i][12].strip())
                 else:
                     summ_det += F.valm(sp_nar[i][12].strip())
+        if max_det - summ_det < 0:
+            return 0
         return max_det - summ_det
 
 
@@ -976,7 +1036,7 @@ class mywindow(QtWidgets.QMainWindow):
             if kol == 0:
                 showDialog(self, 'Количество не может быть 0')
                 return
-            if kol > self.poisk_nar_po_op(nom_mk, id_dse, nom_op):
+            if kol > self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op):
                 showDialog(self, 'Кол-во деталей превышет допустимое')
                 return
             else:
@@ -1103,7 +1163,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
                 f.write(item)
-        self.showDialog('Безымянный наряд №' + str(nom) + " создан.")
+        showDialog(self,'Безымянный наряд №' + str(nom) + " создан.")
         self.ui.lineEdit_cr_nar_kolvo.clear()
         self.ui.lineEdit_cr_nar_nom_proect.clear()
         self.ui.lineEdit_cr_nar_nomerPU.clear()
@@ -1112,6 +1172,58 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.comboBox_cr_nar_etap.setCurrentIndex(0)
         self.ui.plainTextEdit_zadanie.clear()
         self.ui.checkBox.setCheckState(1)
+        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk),id_dse,nom_op)
+        self.otmetka_v_mk(nom_op,sp_nar,id_dse,str(nom_mk))
+        self.vibor_mk()
+
+    def spis_nar_po_mk_id_op(self,mk,id,op):
+        sp = []
+        nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
+        for i in range(1,len(nar)):
+            if nar[i][1].strip() == str(mk) and nar[i][25].strip() == str(id) and nar[i][24].strip() == str(op):
+                sost = 'Создан'
+                if nar[i][17].strip() != '' or nar[i][18].strip() != '':
+                    sost = 'Выдан'
+                    sp_jur = F.otkr_f(F.tcfg('BDzhurnal'),False,'|')
+                    fam = set()
+                    for j in range(len(sp_jur)):
+                        if sp_jur[j][2] == nar[i][0]:
+                            fam.add(sp_jur[j][3])
+                    fam = list(fam)
+                    if len(fam) != 0:
+                        sost = 'Начат'
+                        for j in range(len(sp_jur)):
+                            if sp_jur[j][2] == nar[i][0] and sp_jur[j][7] == 'Завершен':
+                                fam.remove(sp_jur[j][7])
+                                if len(fam) == 0:
+                                    sost = 'Завершен'
+                                    break
+                sp.append(nar[i][0] + ' ' + sost)
+        return sp
+
+    def otmetka_v_mk(self,nom_op,sp_nar,id,mk):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        nom = mk
+        if F.nalich_file(F.scfg('mk_data') + os.sep + nom + '.txt') == False:
+            showDialog(self, 'Не обнаружен файл')
+            return
+        sp_tabl_mk  = F.otkr_f(F.scfg('mk_data') + os.sep + nom + '.txt',False,'|')
+        if sp_tabl_mk  == []:
+            showDialog(self, 'Некорректное содержимое МК')
+            return
+        for j in range(1,len(sp_tabl_mk)):
+            if sp_tabl_mk[j][6]==id:
+                for i in range(11, len(sp_tabl_mk[0]), 4):
+                    if sp_tabl_mk[j][i].strip() != '':
+                        obr = sp_tabl_mk[j][i].strip().split('$')
+                        obr2 = obr[-1].split(";")
+                        if str(nom_op) in obr2:
+                            text = '$'.join(sp_nar)
+                            sp_tabl_mk[j][i+2] = text
+                            F.zap_f(F.scfg('mk_data') + os.sep + nom + '.txt',sp_tabl_mk,'|')
+                            return
+
 
 
 
@@ -1142,7 +1254,7 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def Migat(self, chislo, widhet, msg, koef=0.3):
-        self.showDialog(msg)
+        showDialog(self,msg)
         tepm2 = widhet.font().pointSize()
         tepm3 = widhet.font().styleName()
         tepm = widhet.styleSheet() + ";font: " + str(tepm2) + "pt " + tepm3
@@ -1186,7 +1298,7 @@ class mywindow(QtWidgets.QMainWindow):
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.lineEdit_Nparol.isVisible() == False:
-            self.showDialog("Введи старый и новый пароль, потом еще раз через меню - сменить пароль")
+            showDialog(self,"Введи старый и новый пароль, потом еще раз через меню - сменить пароль")
             self.ui.lineEdit_Nparol.setVisible(True)
             self.ui.lineEdit_Nparol2.setVisible(True)
             return
@@ -1195,14 +1307,14 @@ class mywindow(QtWidgets.QMainWindow):
 
         parol = FCN.Podtv_lich_parol(ima, self.ui.lineEdit_parol.text())
         if parol == None:
-            self.showDialog("Не найден пользователь")
+            showDialog(self,"Не найден пользователь")
             return
         if parol == False:
-            self.showDialog("Не верный пароль")
+            showDialog(self,"Не верный пароль")
             self.ui.lineEdit_parol.clear()
             return
         if self.ui.lineEdit_Nparol.text() != self.ui.lineEdit_Nparol2.text():
-            self.showDialog("Не совпадают новые пароли")
+            showDialog(self,"Не совпадают новые пароли")
             return
         with open(cfg['Riba'] + '\\Riba.txt', 'r') as f:
             Stroki = f.readlines()
@@ -1222,29 +1334,29 @@ class mywindow(QtWidgets.QMainWindow):
             self.ui.lineEdit_Nparol.setVisible(False)
             self.ui.lineEdit_Nparol2.setVisible(False)
             self.setWindowTitle("Создание нарядов")
-            self.showDialog("Пароль изменен, войди еще раз по новому паролю")
+            showDialog(self,"Пароль изменен, войди еще раз по новому паролю")
         else:
-            self.showDialog("Не найден пользователь")
+            showDialog(self,"Не найден пользователь")
         return
 
     def log_in(self):
         if self.ui.lineEdit_parol.text() == "":
             return
         if self.windowTitle() != "Создание нарядов":
-            self.showDialog('Нужно сначала выйти')
+            showDialog(self,'Нужно сначала выйти')
             return
         ima = self.ui.comboBox_spis_users.currentText()
         ima = ima.replace('  ', ',')
         parol = FCN.Podtv_lich_parol(ima, self.ui.lineEdit_parol.text())
         if parol == None:
-            self.showDialog("Не зарегистрирован")
+            showDialog(self,"Не зарегистрирован")
             return
         if parol == True:
             self.setWindowTitle(self.ui.comboBox_spis_users.currentText())
             self.ui.lineEdit_parol.clear()
             self.ui.comboBox_spis_users.setCurrentIndex(0)
         else:
-            self.showDialog("Не верный пароль")
+            showDialog(self,"Не верный пароль")
             self.ui.lineEdit_parol.clear()
             return
         self.ui.tabWidget.setCurrentIndex(1)
@@ -1273,7 +1385,7 @@ class mywindow(QtWidgets.QMainWindow):
             for line in range(nach,len(Stroki_filt)):
                 nach_l +=1
                 if Stroki_filt[nach_l].count('|') < 8:
-                    self.showDialog('Некорректная строка ' + Stroki_filt[nach_l] + object.objectName())
+                    showDialog(self,'Некорректная строка ' + Stroki_filt[nach_l] + object.objectName())
                     exit()
                 arr_line = [x for x in Stroki_filt[nach_l].split('|')]
                 for item in slovar_iskl_filtr_row_imena.keys():
@@ -1339,7 +1451,7 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         if flag_nalich != 0:
             New_dannie = "Пользователь уже зарегистрирован " + flag_nalich
-            self.showDialog(New_dannie)
+            showDialog(self,New_dannie)
             return
 
         New_dannie = FCN.shifr(self.ui.comboBox_spis_users.currentText().replace('  ', ',')) + "|" + FCN.shifr(DT.today().strftime("%Y")) + '\n'
@@ -1347,7 +1459,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Riba'] + '\\Riba.txt', 'w') as f:
             for line in Stroki:
                 f.write(line)
-        self.showDialog("Новый пользователь зарегистрирован: " + '\n' + self.ui.comboBox_spis_users.currentText() + '\n' \
+        showDialog(self,"Новый пользователь зарегистрирован: " + '\n' + self.ui.comboBox_spis_users.currentText() + '\n' \
                         + FCN.shifr(self.ui.comboBox_spis_users.currentText().replace('  ', ',')))
         return
 
