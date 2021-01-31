@@ -46,8 +46,13 @@ class mywindow(QtWidgets.QMainWindow):
 
 
         self.ui.pushButton_create_nar.clicked.connect(self.sozd_naryad)
-        self.ui.tabWidget.tabBarClicked.connect(self.tab_click)
-        self.ui.tableWidget_vibor_nar_dlya_imen.itemClicked.connect(self.tabl_vibor_nar_dla_imen)
+        #self.ui.tabWidget.tabBarClicked.connect(self.tab_click)
+        tabl_vibor_nar = self.ui.tableWidget_vibor_nar_dlya_imen
+        tabl_vibor_nar.itemClicked.connect(self.tabl_vibor_nar_dla_imen)
+        F.ust_cvet_videl_tab(tabl_vibor_nar)
+        tabl_vibor_nar.setSelectionBehavior(1)
+        tabl_vibor_nar.setSelectionMode(1)
+
         self.ui.tableWidget_vibor_imeni_sla_nar.itemClicked.connect(self.tabl_vibor_fio_dla_imen)
         self.ui.pushButton_primen_imena.clicked.connect(self.primenit_imena)
         self.ui.radioButton_vse.clicked.connect(self.corr_vse)
@@ -64,7 +69,7 @@ class mywindow(QtWidgets.QMainWindow):
         tabl_vib_mk.setSelectionBehavior(1)
         tabl_vib_mk.setSelectionMode(1)
         F.ust_cvet_videl_tab(tabl_vib_mk)
-        tabl_vib_mk.clicked.connect(self.vibor_mk)
+        tabl_vib_mk.clicked.connect(self.vibor_mk_0)
         tabl_vib_mk.doubleClicked.connect(self.dblclk_sp_mk)
 
         tabl_vib_det = self.ui.tableWidget_vibor_det
@@ -112,7 +117,13 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.plainTextEdit_zadanie.setEnabled(False)
         self.ui.pushButton_primen_correctirovky.setEnabled(False)
         self.ui.tableWidget_vibor_imeni_sla_nar.setSortingEnabled(True)
-        self.ui.tableWidget_tabl_komplektovki.setSortingEnabled(True)
+
+        tabl_kompl = self.ui.tableWidget_tabl_komplektovki
+        tabl_kompl.setSortingEnabled(True)
+        F.ust_cvet_videl_tab(tabl_kompl)
+        tabl_kompl.setSelectionBehavior(1)
+        tabl_kompl.setSelectionMode(1)
+
         self.ui.tableWidget_spispk_nar_dla_korrect.setSortingEnabled(True)
         # =====================================================проверка файлов
         for item in proverka_list_puti:
@@ -178,16 +189,10 @@ class mywindow(QtWidgets.QMainWindow):
     def check_vneplan_rab(self):
         chek_vneplan = self.ui.checkBox_vneplan_rab
         if chek_vneplan.checkState() == 2:
-            self.ui.lineEdit_cr_nar_nom_proect.setEnabled(True)
-            self.ui.lineEdit_cr_nar_nomerPU.setEnabled(True)
             self.ui.lineEdit_cr_nar_norma.setEnabled(True)
-            self.ui.lineEdit_cr_nar_pozicii.setEnabled(True)
             self.ui.plainTextEdit_zadanie.setEnabled(True)
         else:
-            self.ui.lineEdit_cr_nar_nom_proect.setEnabled(False)
-            self.ui.lineEdit_cr_nar_nomerPU.setEnabled(False)
             self.ui.lineEdit_cr_nar_norma.setEnabled(False)
-            self.ui.lineEdit_cr_nar_pozicii.setEnabled(False)
             self.ui.plainTextEdit_zadanie.setEnabled(False)
             self.ui.lineEdit_cr_nar_nom_proect.clear()
             self.ui.lineEdit_cr_nar_nomerPU.clear()
@@ -222,9 +227,6 @@ class mywindow(QtWidgets.QMainWindow):
         text_zad.setPlainText('')
         chek_vneplan.setCheckState(0)
 
-
-
-
         if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
             return
         if tabl_mk.currentRow() == -1:
@@ -234,6 +236,7 @@ class mywindow(QtWidgets.QMainWindow):
             showDialog(self,'Не выбрана мк')
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
+        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
         nom_det = tabl_mk.item(tabl_mk.currentRow(), 1).text().strip()
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
@@ -242,13 +245,9 @@ class mywindow(QtWidgets.QMainWindow):
             nom_pr = '*'
         line_nom_pr.setText(nom_pr)
         line_nom_pu.setText(nom_pu)
-        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
         kolvo = self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op)
-
         line_kolvo.setText(str(kolvo))
-
         norm_vr = self.rasch_norm_vr()
-
 
         line_dse.setText(nom_det)
 
@@ -259,9 +258,6 @@ class mywindow(QtWidgets.QMainWindow):
         materials = tabl_sp_oper.item(tabl_sp_oper.currentRow(),8).text().strip()
         if materials != '':
             materials = materials.split('; ')
-
-
-
         masgg = F.vpis(nom_op + ' ' + naim_op ,50,"","") + '\n'
         if docs != '':
             masgg += 'Документация: ' + docs + '\n'
@@ -287,9 +283,7 @@ class mywindow(QtWidgets.QMainWindow):
             masgg += 'Материалы: ' + '\n'
             for i in range(0,len(materials)):
                 masgg += materials[i] + '\n'
-
         text_zad.setPlainText(masgg)
-
         return
 
     def dblclk_mk(self):
@@ -409,7 +403,10 @@ class mywindow(QtWidgets.QMainWindow):
     def dblclk_sp_mk(self):
         self.zapoln_tabl_mk()
 
-    def vibor_mk(self):
+    def vibor_mk_0(self):
+        self.vibor_mk()
+    def vibor_mk(self, old_strok = -1):
+        stroka = old_strok
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
         if tabl_sp_mk.currentRow() == -1:
@@ -425,7 +422,7 @@ class mywindow(QtWidgets.QMainWindow):
         sp = self.oformlenie_sp_pod_mk(sp)
         F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 200, True, '', 65)
         self.oform_mk(sp)
-
+        tabl_mk.setCurrentCell(stroka,1)
 
 
     def oformlenie_sp_pod_mk(self,s):
@@ -452,6 +449,8 @@ class mywindow(QtWidgets.QMainWindow):
     def oform_mk(self,sp):
         shag = 15
         tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
         maxs = set()
         for i in range(1,len(sp)):
             maxs.add(self.uroven(sp[i][0]))
@@ -485,7 +484,17 @@ class mywindow(QtWidgets.QMainWindow):
                     if flag == 1:
                         F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)
                     if flag == 0:
-                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0)
+                        if tabl_mk.currentRow() == -1:
+                            showDialog(self, 'Не выбрана дсе')
+                            return
+                        if tabl_sp_mk.currentRow() == -1:
+                            showDialog(self, 'Не выбрана мк')
+                            return
+                        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+                        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
+                        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
+                        if self.summ_dost_det_po_nar(nom_mk,id_dse,nom_op) <= 0:
+                            F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0)
 
 
 
@@ -494,7 +503,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.poisk_strok(0,obr)
     def poisk_np(self):
         obr = self.ui.lineEdit_np.text()
-        self.poisk_strok(3,obr)
+        self.poisk_strok(5,obr)
     def poisk_py(self):
         obr = self.ui.lineEdit_py.text()
         self.poisk_strok(4,obr)
@@ -530,13 +539,8 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         F.zap_f(F.tcfg('Naryad'),Stroki_nar,'|')
         showDialog(self,'Наряд ' + Nom_nar + ' отмечен - некомплект')
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
-        filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
-        iskl_slov = {17: "*", 18: "*"}
-        self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_tabl_komplektovki, filtr_col, {}, [], iskl_slov, 500, True)
-        self.ui.tableWidget_tabl_komplektovki.setColumnWidth(self.ui.tableWidget_tabl_komplektovki.columnCount()-1,0)
-        self.ui.tableWidget_tabl_komplektovki.setColumnWidth(self.ui.tableWidget_tabl_komplektovki.columnCount() - 2, 0)
+        self.zap_tabl_komplektovki()
+        self.zap_tabl_vibor_nar_dlya_imen()
         return
 
     def komplektovano(self):
@@ -550,13 +554,8 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         showDialog(self,'Наряд ' + Nom_nar + ' скомплектован под сборку')
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
-        filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
-        iskl_slov = {17: "*", 18: "*"}
-        self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_tabl_komplektovki, filtr_col, {}, [], iskl_slov, 500, True)
-        self.ui.tableWidget_tabl_komplektovki.setColumnWidth(self.ui.tableWidget_tabl_komplektovki.columnCount()-1,0)
-        self.ui.tableWidget_tabl_komplektovki.setColumnWidth(self.ui.tableWidget_tabl_komplektovki.columnCount() - 2, 0)
+        self.zap_tabl_komplektovki()
+        self.zap_tabl_vibor_nar_dlya_imen()
         return
 
 
@@ -574,10 +573,11 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         showDialog(self,'Наряд ' + Nom_nar + ' удален')
-        self.corr_ne_nach()
+        self.zap_prosm_nar()
         sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
         self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
         self.vibor_mk()
+        self.zap_tabl_komplektovki()
         return
 
     def delete_fio(self):
@@ -600,11 +600,28 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         showDialog(self,'ФИО в наряде ' + Nom_nar + ' удалены: ' + fio1 + '; '+ fio2)
-        self.ui.tabWidget.setCurrentIndex(0)
+        self.zap_tabl_vibor_nar_dlya_imen()
+        self.zap_prosm_nar()
         sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
         self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
         self.vibor_mk()
+        self.zap_tabl_komplektovki()
         return
+
+    def zap_prosm_nar(self):
+        option_vse = self.ui.radioButton_vse
+        option_ne_nachatie =self.ui.radioButton_ne_nachatie
+        option_nachati =self.ui.radioButton_nachatie
+        option_zavershonnie =self.ui.radioButton_zavershonnie
+        self.ui.tableWidget_spispk_nar_dla_korrect.clear()
+        if option_vse.isChecked() == True:
+            self.corr_vse()
+        elif option_ne_nachatie.isChecked() == True:
+            self.corr_ne_nach()
+        elif option_nachati.isChecked() == True:
+            self.corr_nach()
+        elif option_zavershonnie.isChecked() == True:
+            self.corr_zavershonnie()
 
 
     def corr_vse(self):
@@ -613,7 +630,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki = f.readlines()
         ogr_shir = int(cfg['ogran_shir'])
-        filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 17, 18}
+        filtr_col = {0, 2, 3, 4, 6, 7, 8, 11, 12, 13, 14, 15, 17, 18, 21}
         iskl_slov = {}
         self.zapoln_tabl(Stroki, self.ui.tableWidget_spispk_nar_dla_korrect, filtr_col, {}, [], iskl_slov, ogr_shir,True)
         self.ui.pushButton_primen_correctirovky.setEnabled(False)
@@ -625,7 +642,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki = f.readlines()
         ogr_shir = int(cfg['ogran_shir'])
-        filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 17, 18}
+        filtr_col = {0, 2, 3, 4, 6, 7, 8, 11, 12, 13, 14, 15, 17, 18, 21}
         iskl_slov = {}
         with open(cfg['BDzhurnal'] + '\\BDzhurnal.txt', 'r') as f:
             Stroki_BDj = f.readlines()
@@ -666,7 +683,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki = f.readlines()
         ogr_shir = int(cfg['ogran_shir'])
-        filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 17, 18}
+        filtr_col = {0, 2, 3, 4, 6, 7, 8, 11, 12, 13, 14, 15, 17, 18, 21}
         iskl_slov = {}
 
         with open(cfg['BDzhurnal'] + '\\BDzhurnal.txt', 'r') as f:
@@ -702,7 +719,7 @@ class mywindow(QtWidgets.QMainWindow):
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
             Stroki = f.readlines()
         ogr_shir = int(cfg['ogran_shir'])
-        filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 17, 18}
+        filtr_col = {0, 2, 3, 4, 6, 7, 8, 11, 12, 13, 14, 15, 17, 18, 21}
         iskl_slov = {}
         with open(cfg['BDzhurnal'] + '\\BDzhurnal.txt', 'r') as f:
             Stroki_BDj = f.readlines()
@@ -771,6 +788,22 @@ class mywindow(QtWidgets.QMainWindow):
                 return sp_bd_prof[i][1]
         return None
 
+    def prof_po_kod(self,kod):
+        sp_bd_prof = F.otkr_f(F.scfg('bd_prof') + os.sep + 'bd_prof.txt', False, "|")
+        if sp_bd_prof == ['']:
+            showDialog(self, 'Не найден sp_bd_prof')
+            return
+        prof = F.naiti_v_spis_1_1(sp_bd_prof,0,kod,1)
+        return prof
+
+    def kod_po_prof(self, prof):
+        sp_bd_prof = F.otkr_f(F.scfg('bd_prof') + os.sep + 'bd_prof.txt', False, "|")
+        if sp_bd_prof == ['']:
+            showDialog(self, 'Не найден sp_bd_prof')
+            return
+        kod = F.naiti_v_spis_1_1(sp_bd_prof, 1, prof, 0)
+        return kod
+
     def primenit_imena(self):
         tabl_vib_nar = self.ui.tableWidget_vibor_nar_dlya_imen
         label_isp1 = self.ui.label_12_ispoln1
@@ -798,7 +831,6 @@ class mywindow(QtWidgets.QMainWindow):
         if kol_rab != kol_rab_vib:
             showDialog(self, 'Количество работников должно быть ' + kol_rab )
             return
-
         if ima1 != '':
             nomer_porof_po_isp = self.prof_ispolnit(ima1)
             if nomer_porof_po_isp == False:
@@ -836,19 +868,14 @@ class mywindow(QtWidgets.QMainWindow):
                 nom_op = Stroki_nar[i][24]
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
-        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '')
-        filtr_col = {0, 2, 3, 4, 7, 11, 12, 13, 14, 16, 17, 18}
-        ogr_shir = int(cfg['ogran_shir'])
-        iskl_slov = {16: "", 17: "*", 18: "*"}
-        self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_vibor_nar_dlya_imen, filtr_col, {}, [], iskl_slov, ogr_shir,
-                         True)
-        showDialog(self,'Наряд ' + str(self.ui.label_10_vibr_nar.text()) + ' заполнен')
-        self.obnovit_progress_imena()
-        self.ui.tableWidget_spispk_nar_dla_korrect.clear()
+        self.zap_prosm_nar()
+        self.zap_tabl_vibor_imeni_sla_nar()
+        self.zap_tabl_vibor_nar_dlya_imen()
+        self.zap_tabl_komplektovki()
         sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
         self.otmetka_v_mk(nom_op, sp_nar, id_dse, str(nom_mk))
         self.vibor_mk()
-
+        showDialog(self, 'Наряд ' + nom_nar + ' выдан на ' + ima1 + ' ' + ima2)
 
 
     def obnovit_progress_imena(self):
@@ -858,8 +885,6 @@ class mywindow(QtWidgets.QMainWindow):
         max_summ = 0
         for st in range(0,rows):
             ima = self.ui.tableWidget_vibor_imeni_sla_nar.item(st,0).text()
-
-
             summ = FCN.summ_chasov_po_imeni(ima)
             if max_summ < summ:
                 max_summ = summ
@@ -869,10 +894,11 @@ class mywindow(QtWidgets.QMainWindow):
             # Создаем QProgressBar
             progress = QtWidgets.QProgressBar()
             progress.setMinimum(0)
-            progress.setMaximum(max_summ)
+            progress.setMaximum(int(max_summ))
 
             # Формат вывода: 10.50%
-            progress.setValue(spisok_chasov[item])
+
+            progress.setValue(int(spisok_chasov[item]))
             progress.setFormat('%v')
             progress.setTextVisible(False)
             #cellinfo2 = QtWidgets.QTableWidgetItem(spisok_chasov[item])
@@ -908,63 +934,56 @@ class mywindow(QtWidgets.QMainWindow):
         else:
             self.ui.label_13_ispoln2.setText(self.ui.tableWidget_vibor_imeni_sla_nar.item(i, 0).text())
 
+    def zap_tabl_vibor_nar_dlya_imen(self):
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
+        for i in range(1,len(Stroki_nar)):
+            if len(Stroki_nar[i]) >27:
+                Stroki_nar[i][26] = self.prof_po_kod(Stroki_nar[i][26])
+        filtr_col = {0,2,3,4,7,11,12,13,14,16,26,27}
+        ogr_shir = int(cfg['ogran_shir'])
+        iskl_slov = {16: "", 17: "*", 18: "*"}
+        F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen,filtr_col,0,'', iskl_slov,ogr_shir,True,'')
 
-    def tab_click(self):
-        if self.windowTitle() == "Создание нарядов":
-            return
-        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-            Stroki_nar = f.readlines()
+    def zap_tabl_vibor_imeni_sla_nar(self):
+        with open(cfg['employee'] + '\\employee.txt', 'r', encoding='utf-8') as f:
+            Stroki = f.readlines()
+        with open(cfg['Filtr_rab'] + '\\Filtr_rab.txt', 'r') as f:
+            Stroki_emp = f.readlines()
+        Stroki_temp = []
+        for line in Stroki:
+            line = line.replace(',', '  ')
+            line = line.replace('\n', '')
+            if FCN.etap_po_fio(line, Stroki_emp) != "":
+                line = line.encode('cp1251', errors='ignore').decode('cp1251')
+                Stroki_temp.append(line)
+        Stroki_temp2 = Stroki_temp.copy()
+        with open(cfg['FiltrEmpDel'] + '\\FiltrEmpDel.txt', 'r') as f:
+            Stroki_FiltrEmpDel = f.readlines()
+        for item in Stroki_temp2:
+            for iskl in Stroki_FiltrEmpDel:
+                if iskl.strip() in item:
+                    Stroki_temp.remove(item)
+                    break
+        Stroki_temp2.clear()
+        filtr_col = {0, 1, 2}
+        iskl_slov = {}
+        self.zapoln_tabl(Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
+        self.obnovit_progress_imena()
+
+    def zap_TextEdit_opovesh(self):
+        with open(cfg['Opovesh'] + '\\Opovesh.txt', 'r') as f:
+            Stroki_opov = f.readlines()
+        body = "".join(Stroki_opov)
+        self.ui.plainTextEdit_opovesh.setPlainText(body)
+
+    def zap_tabl_komplektovki(self):
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
+        iskl_slov = {17: "*", 18: "*"}
+        F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_tabl_komplektovki,filtr_col,0,'', iskl_slov,200,True,'')
+        #self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_tabl_komplektovki, filtr_col, {}, [], iskl_slov, 500, True)
 
 
-        if self.ui.tabWidget.currentIndex() == 0 or self.ui.tabWidget.currentIndex() == 2 or self.ui.tabWidget.currentIndex() == 4:
-
-            filtr_col = {0,2,3,4,7,11,12,13,14,16,26,27}
-            ogr_shir = int(cfg['ogran_shir'])
-            iskl_slov = {16: "", 17: "*", 18: "*"}
-            F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen,filtr_col,0,'', iskl_slov,ogr_shir,True,'|')
-            #self.zapoln_tabl(Stroki_nar,self.ui.tableWidget_vibor_nar_dlya_imen, filtr_col, {}, [], iskl_slov, ogr_shir, True)
-
-
-            with open(cfg['employee'] + '\\employee.txt', 'r', encoding='utf-8') as f:
-                Stroki = f.readlines()
-            with open(cfg['Filtr_rab'] + '\\Filtr_rab.txt', 'r') as f:
-                Stroki_emp = f.readlines()
-
-            Stroki_temp = []
-            for line in Stroki:
-                line = line.replace(',', '  ')
-                line = line.replace('\n', '')
-                if FCN.etap_po_fio(line, Stroki_emp) != "":
-                    line = line.encode('cp1251', errors='ignore').decode('cp1251')
-                    Stroki_temp.append(line)
-            Stroki_temp2 = Stroki_temp.copy()
-            with open(cfg['FiltrEmpDel'] + '\\FiltrEmpDel.txt', 'r') as f:
-                Stroki_FiltrEmpDel = f.readlines()
-            for item in Stroki_temp2:
-                for iskl in Stroki_FiltrEmpDel:
-                    if iskl.strip() in item:
-                        Stroki_temp.remove(item)
-                        break
-            Stroki_temp2.clear()
-            filtr_col = {0,1,2}
-            iskl_slov = {}
-            self.zapoln_tabl(Stroki_temp,self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
-            self.obnovit_progress_imena()
-
-        if self.ui.tabWidget.currentIndex() == 0 or self.ui.tabWidget.currentIndex() == 2 or self.ui.tabWidget.currentIndex() == 3:
-            with open(cfg['Opovesh'] + '\\Opovesh.txt', 'r') as f:
-                Stroki_opov = f.readlines()
-            body = "".join(Stroki_opov)
-            self.ui.plainTextEdit_opovesh.setPlainText(body)
-        if self.ui.tabWidget.currentIndex() == 0 or self.ui.tabWidget.currentIndex() == 2 or \
-                self.ui.tabWidget.currentIndex() == 3 or self.ui.tabWidget.currentIndex() == 4:
-            filtr_col = {0,3,4,11,12,14,15,16,17,18}
-            iskl_slov = {17: "*", 18: "*"}
-            self.zapoln_tabl(Stroki_nar,self.ui.tableWidget_tabl_komplektovki, filtr_col, {}, [], iskl_slov, 500, True)
-            self.ui.tableWidget_tabl_komplektovki.setColumnWidth(
-                self.ui.tableWidget_tabl_komplektovki.columnCount() - 1, 0)
-            self.ui.tableWidget_tabl_komplektovki.setColumnWidth(
-                self.ui.tableWidget_tabl_komplektovki.columnCount() - 2, 0)
 
     def max_det_skompl(self,nom_op):
         tabl_mk = self.ui.tableWidget_vibor_det
@@ -989,7 +1008,7 @@ class mywindow(QtWidgets.QMainWindow):
         max_det = self.max_det_skompl(nom_op)
         summ_det = 0
         for i in range(len(sp_nar)):
-            if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op:
+            if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op and sp_nar[i][21] == '':
                 if zakr == True:
                     mn = []
                     flag = 1
@@ -1029,27 +1048,6 @@ class mywindow(QtWidgets.QMainWindow):
         koid_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 9).text().strip()
         id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
 
-
-        kol = int(line_kolvo.text().strip())
-
-        if chek_vneplan.checkState() == 0:
-            if kol == 0:
-                showDialog(self, 'Количество не может быть 0')
-                return
-            if kol > self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op):
-                showDialog(self, 'Кол-во деталей превышет допустимое')
-                return
-            else:
-                if tabl_sp_oper.currentRow() > 0:
-                    for i in range(tabl_sp_oper.currentRow()-1,-1,-1):
-                        if tabl_sp_oper.item(i, 12).text().strip() != '2':
-                            break
-                    nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
-                    if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p,True) > 0:
-                        showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
-                        return
-
-
         if self.windowTitle() == "Создание нарядов":
             return
         if self.ui.checkBox_vecher.checkState() == 1:
@@ -1058,6 +1056,30 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.lineEdit_cr_nar_kolvo.text() == "":
             self.Migat(3,self.ui.lineEdit_cr_nar_kolvo ,"Не заполнено количество")
             return
+        if F.is_numeric(self.ui.lineEdit_cr_nar_kolvo.text().strip()) == False:
+            self.Migat(3,self.ui.lineEdit_cr_nar_kolvo ,"Количество должно быть числом")
+            return
+
+        kol = int(line_kolvo.text().strip())
+        vneplan = 'Внеплана'
+        if chek_vneplan.checkState() == 0:
+            vneplan = ''
+            if kol == 0:
+                showDialog(self, 'Количество не может быть 0')
+                return
+            if kol > self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op):
+                showDialog(self, 'Кол-во деталей превышет допустимое')
+                return
+            else:
+                if tabl_sp_oper.currentRow() > 0:
+                    for i in range(tabl_sp_oper.currentRow() - 1, -1, -1):
+                        if tabl_sp_oper.item(i, 12).text().strip() != '2':
+                            break
+                    nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
+                    if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p, True) > 0:
+                        showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
+                        return
+
         if self.ui.lineEdit_cr_nar_nom_proect.text() == "":
             self.Migat(3,self.ui.lineEdit_cr_nar_nom_proect ,"Не заполнен номер проекта")
             return
@@ -1083,6 +1105,9 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.plainTextEdit_zadanie.toPlainText() == "":
             self.Migat(3,self.ui.plainTextEdit_zadanie ,"Не описано задание")
             return
+
+
+
         if ' ' in self.ui.lineEdit_cr_nar_pozicii.text():
             self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().strip())
             self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().replace('   ', ' '))
@@ -1154,16 +1179,16 @@ class mywindow(QtWidgets.QMainWindow):
 
         Stroki.append(str(nom) + "|" + str(nom_mk) + "|" + DT.today().strftime("%d.%m.%Y %H:%M:%S") + '|' +\
                       self.ui.lineEdit_cr_nar_nom_proect.text() + "$" +  self.ui.lineEdit_cr_nar_nomerPU.text() + \
-                      "|" + primechanie + self.ui.plainTextEdit_zadanie.toPlainText().strip().replace('\n',' ') +\
+                      "|" + primechanie + self.ui.plainTextEdit_zadanie.toPlainText().strip().replace('\n','{') +\
                       '|' + self.ui.lineEdit_cr_nar_norma.text() + \
                       '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '|' + str(ves_det) + '|' + vid_pr +  \
                       '|' + self.ui.lineEdit_cr_nar_kolvo.text() + \
                       '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + self.ui.comboBox_cr_nar_etap.currentText() + \
-                      '||||||||||' + nom_op + '|' + id_dse + '|' + kod_prof + '|' + kr_op + '|' + koid_op + '|' + "\n")
+                      '|||||||' + vneplan + '|||' + nom_op + '|' + id_dse + '|' + kod_prof + '|' + kr_op + '|' + koid_op + '|' + "\n")
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
                 f.write(item)
-        showDialog(self,'Безымянный наряд №' + str(nom) + " создан.")
+
         self.ui.lineEdit_cr_nar_kolvo.clear()
         self.ui.lineEdit_cr_nar_nom_proect.clear()
         self.ui.lineEdit_cr_nar_nomerPU.clear()
@@ -1172,9 +1197,13 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.comboBox_cr_nar_etap.setCurrentIndex(0)
         self.ui.plainTextEdit_zadanie.clear()
         self.ui.checkBox.setCheckState(1)
+        old_ind = tabl_mk.currentRow()
         sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk),id_dse,nom_op)
         self.otmetka_v_mk(nom_op,sp_nar,id_dse,str(nom_mk))
-        self.vibor_mk()
+        self.vibor_mk(old_ind)
+        self.zap_prosm_nar()
+        self.zap_tabl_komplektovki()
+        showDialog(self, 'Безымянный наряд №' + str(nom) + " создан.")
 
     def spis_nar_po_mk_id_op(self,mk,id,op):
         sp = []
@@ -1361,7 +1390,11 @@ class mywindow(QtWidgets.QMainWindow):
             return
         self.ui.tabWidget.setCurrentIndex(1)
         self.zapoln_tabl_mk()
-        self.tab_click()
+        self.zap_tabl_komplektovki()
+        self.zap_tabl_vibor_imeni_sla_nar()
+        self.zap_tabl_vibor_nar_dlya_imen()
+        self.zap_TextEdit_opovesh()
+        #self.tab_click()
 
 
     def zapoln_tabl(self, spisok, object, set_filtr_col_nomera, set_editeble_col_nomera, spis_filtr_row_imena = (), slovar_iskl_filtr_row_imena = (), ogr_shir_col = 200, isp_shapka = False):

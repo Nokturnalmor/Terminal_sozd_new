@@ -1,7 +1,7 @@
 import hashlib
 import config
 import os
-
+import Cust_Functions as F
 cfg = config.Config('Config\CFG.cfg') #файл конфига, находится п папке конфиг
 
 def proverka_nalichie_znach(item):
@@ -85,23 +85,21 @@ def parametr_iz_akta(sroka,ima):
 def summ_chasov_po_imeni(ima):
     arr_ima = ima.split("  ")
     arr_ima.pop()
-    ima = "  ".join(arr_ima)
-    ima2 = " ".join(arr_ima)
+    ima = " ".join(arr_ima)
     summ = 0
-    with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-        Stroki_nar = f.readlines()
-    with open(cfg['BDzhurnal'] + '\\BDzhurnal.txt', 'r') as f:
-        Stroki_Zhur = f.readlines()
-    for line in Stroki_nar:
-        if ima in line or ima2 in line:
-            arr = line.split('|')
-            nom_nar = arr[0]
+
+    Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
+    Stroki_Zhur = F.otkr_f(F.tcfg('BDzhurnal'),False,'|')
+
+    for line in range(1,len(Stroki_nar)):
+        if ima in Stroki_nar[line][17].replace('  ',' ') or ima == Stroki_nar[line][18].replace('  ',' '):
+            nom_nar = Stroki_nar[line][0]
             flag_zakr = 0
-            for line_z in Stroki_Zhur:
-                if nom_nar in line_z and "|Завершен|" in line_z:
+            for line_z in range(len(Stroki_Zhur)):
+                if nom_nar == Stroki_Zhur[line_z][2] and "Завершен" == Stroki_Zhur[line_z][7]:
                     flag_zakr = 1
                     break
             if flag_zakr == 0:
-                summ += float(arr[5].replace(',','.'))
-    return int(round(summ))
+                summ += float(F.valm(Stroki_nar[line][5]))
+    return round(summ,3)
 

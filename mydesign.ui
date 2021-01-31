@@ -506,7 +506,7 @@
                   <height>16777215</height>
                  </size>
                 </property>
-                <property name="placeholderText">
+                <property name="placeholderText" stdset="0">
                  <string>Этап</string>
                 </property>
                </widget>
