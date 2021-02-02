@@ -434,7 +434,6 @@ class mywindow(QtWidgets.QMainWindow):
             for i in range(13, len(s[0]),4):
                 if '$' in j[i]:
                     j[i] = j[i].replace('$','\n')
-
         return s
 
     def uroven(self,strok):
@@ -471,17 +470,21 @@ class mywindow(QtWidgets.QMainWindow):
                         F.dob_color_wtab(tabl_mk, i - 1, j, 0, 127, 0)
                     else:
                         F.dob_color_wtab(tabl_mk, i - 1, j, 37, 17, 0)
-                if tabl_mk.item(i - 1, j+1).text() != '':
-                    arr = tabl_mk.item(i - 1, j+1).text().strip().split('\n')
+                if tabl_mk.item(i - 1, j + 1).text() != '':
+                    arr = tabl_mk.item(i - 1, j + 1).text().strip().split('\n')
                     flag = 0
+                    set_sost = set()
                     for k in range(len(arr)):
                         arr2 = arr[k].split(' ')
-                        if arr2[1] == 'Начат':
-                            flag = 1
-                            break
-                        if arr2[1] == 'Создан' or arr2[1] == 'Выдан':
-                            flag = 2
-                    if flag == 1:
+                        set_sost.add(arr2[1])
+                    if len(set_sost) == 1 and 'Завершен' in set_sost:
+                        flag = 2
+                    elif len(set_sost) == 1 and 'Выдан' in set_sost:
+                        flag = 0
+                    else:
+                        flag = 1
+
+                    if flag == 1:  # оранж
                         F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)
                     if flag == 0:
                         if tabl_mk.currentRow() == -1:
@@ -490,11 +493,17 @@ class mywindow(QtWidgets.QMainWindow):
                         if tabl_sp_mk.currentRow() == -1:
                             showDialog(self, 'Не выбрана мк')
                             return
-                        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
-                        id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
-                        nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
-                        if self.summ_dost_det_po_nar(nom_mk,id_dse,nom_op) <= 0:
-                            F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0)
+                    nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+                    id_dse = tabl_mk.item(i - 1, 6).text()
+                    arr_op = tabl_mk.item(i - 1, j -1).text()
+                    arr_op2 = arr_op.split('Операции:\n')
+                    obr = arr_op2[-1].split(";")
+                    ostatok = 0
+                    for op in obr:
+                        nom_op = op
+                        ostatok+= self.summ_dost_det_po_nar(nom_mk,id_dse,nom_op) # зеленый
+                    if ostatok <=0:
+                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0) # зеленый
 
 
 
@@ -985,17 +994,19 @@ class mywindow(QtWidgets.QMainWindow):
 
 
 
-    def max_det_skompl(self,nom_op):
+    def max_det_skompl(self,nom_op,id_dse):
         tabl_mk = self.ui.tableWidget_vibor_det
-        for i in range(11,tabl_mk.columnCount(),4):
-            if tabl_mk.item(tabl_mk.currentRow(), i).text().strip() != '':
-                obr = tabl_mk.item(tabl_mk.currentRow(), i).text().strip().split('Операции:\n')
-                obr2 = obr[-1].split(";")
-                if str(nom_op) in obr2:
-                    if tabl_mk.item(tabl_mk.currentRow(), i+1).text().strip() == '':
-                        return 0
-                    kompl = tabl_mk.item(tabl_mk.currentRow(), i+1).text().strip().split(' шт.')
-                    return int(kompl[0])
+        for j in range(tabl_mk.rowCount()):
+            if tabl_mk.item(j,6).text() == id_dse:
+                for i in range(11,tabl_mk.columnCount(),4):
+                    if tabl_mk.item(j, i).text().strip() != '':
+                        obr = tabl_mk.item(j, i).text().strip().split('Операции:\n')
+                        obr2 = obr[-1].split(";")
+                        if str(nom_op) in obr2:
+                            if tabl_mk.item(j, i+1).text().strip() == '':
+                                return 0
+                            kompl = tabl_mk.item(j, i+1).text().strip().split(' шт.')
+                            return int(kompl[0])
 
 
     def summ_dost_det_po_nar(self,nom_mar,id_dse,nom_op,zakr=False):
@@ -1005,7 +1016,7 @@ class mywindow(QtWidgets.QMainWindow):
         if sp_nar == ['']:
             showDialog(self,'Не найдена база с нарядами')
             return
-        max_det = self.max_det_skompl(nom_op)
+        max_det = self.max_det_skompl(nom_op,id_dse)
         summ_det = 0
         for i in range(len(sp_nar)):
             if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op and sp_nar[i][21] == '':
@@ -1223,7 +1234,7 @@ class mywindow(QtWidgets.QMainWindow):
                         sost = 'Начат'
                         for j in range(len(sp_jur)):
                             if sp_jur[j][2] == nar[i][0] and sp_jur[j][7] == 'Завершен':
-                                fam.remove(sp_jur[j][7])
+                                fam.remove(sp_jur[j][3])
                                 if len(fam) == 0:
                                     sost = 'Завершен'
                                     break
@@ -1253,33 +1264,6 @@ class mywindow(QtWidgets.QMainWindow):
                             F.zap_f(F.scfg('mk_data') + os.sep + nom + '.txt',sp_tabl_mk,'|')
                             return
 
-
-
-
-    #def tabl_vibor_proekta(self):
-    #    self.statusBar().showMessage(self.ui.tableWidget_vibpr_proekta.currentItem().text())
-    #    i = self.ui.tableWidget_vibpr_proekta.currentRow()
-    #    if ' по наряду №' in self.ui.tableWidget_vibpr_proekta.item(i, 8).text() and \
-    #            self.ui.tableWidget_vibpr_proekta.item(i, 6).text() == '':
-    #        n_nar_arr = self.ui.tableWidget_vibpr_proekta.item(i, 8).text().split(" по наряду №")
-    #        n_nar_arr2 =  n_nar_arr[1].split("(")
-    #        n_nar = n_nar_arr2[0]
-    #        self.ui.plainTextEdit_zadanie.setStatusTip(FCN.nomer_proekt_po_nom_nar(n_nar,17) + ", " + \
-    #                                                   FCN.nomer_proekt_po_nom_nar(n_nar,18))
-    #        self.ui.plainTextEdit_zadanie.setPlainText(FCN.nomer_proekt_po_nom_nar(n_nar,4))
-    #        self.ui.lineEdit_cr_nar_kolvo.setText(FCN.nomer_proekt_po_nom_nar(n_nar,12))
-    #        self.ui.lineEdit_cr_nar_pozicii.setText(FCN.nomer_proekt_po_nom_nar(n_nar,13))
-    #        self.ui.lineEdit_cr_nar_norma.setText(FCN.nomer_proekt_po_nom_nar(n_nar,5))
-    #        self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
-    #        self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
-    #    else:
-    #        self.ui.plainTextEdit_zadanie.setStatusTip('')
-    #        self.ui.lineEdit_cr_nar_nom_proect.setText(self.ui.tableWidget_vibpr_proekta.item(i, 0).text())
-    #        self.ui.lineEdit_cr_nar_nomerPU.setText(self.ui.tableWidget_vibpr_proekta.item(i, 1).text())
-    #        self.ui.plainTextEdit_zadanie.clear()
-    #        self.ui.lineEdit_cr_nar_kolvo.clear()
-    #        self.ui.lineEdit_cr_nar_pozicii.clear()
-    #        self.ui.lineEdit_cr_nar_norma.clear()
 
 
     def Migat(self, chislo, widhet, msg, koef=0.3):
