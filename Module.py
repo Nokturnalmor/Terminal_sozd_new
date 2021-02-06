@@ -78,6 +78,7 @@ class mywindow(QtWidgets.QMainWindow):
         F.ust_cvet_videl_tab(tabl_vib_det)
         tabl_vib_det.clicked.connect(self.vibor_operacii)
         tabl_vib_det.doubleClicked.connect(self.dblclk_mk)
+        tabl_vib_det.setFont(QtGui.QFont("Segoe UI", 8))
 
         tabl_vib_oper = self.ui.tableWidget_vibor_oper
         tabl_vib_oper.setSelectionBehavior(1)
@@ -420,7 +421,7 @@ class mywindow(QtWidgets.QMainWindow):
             showDialog(self, 'Некорректное содержимое МК')
             return
         sp = self.oformlenie_sp_pod_mk(sp)
-        F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 200, True, '', 65)
+        F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 100, True, '', 35)
         self.oform_mk(sp,nom)
         tabl_mk.setCurrentCell(stroka,1)
 
@@ -464,6 +465,9 @@ class mywindow(QtWidgets.QMainWindow):
         for i in range(1, len(sp)):
             for j in range(11, len(sp[i]),4):
                 F.dob_color_wtab(tabl_mk, i - 1, j, 10, 10, 10)
+                if sp[i][j] == '':
+                    for k in range(1,4):
+                        F.dob_color_wtab(tabl_mk, i - 1, j+k, 10, 10, 10)
         tabl_mk.setColumnHidden(6,True)
         #komplekt
         for i in range(1, len(sp)):
