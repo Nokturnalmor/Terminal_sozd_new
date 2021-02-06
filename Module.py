@@ -421,7 +421,7 @@ class mywindow(QtWidgets.QMainWindow):
             return
         sp = self.oformlenie_sp_pod_mk(sp)
         F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 200, True, '', 65)
-        self.oform_mk(sp)
+        self.oform_mk(sp,nom)
         tabl_mk.setCurrentCell(stroka,1)
 
 
@@ -432,6 +432,9 @@ class mywindow(QtWidgets.QMainWindow):
                     vrem, oper1, oper2 = [x for x in j[i].split("$")]
                     j[i] = vrem + '\n' + oper1 + '\n' + oper2
             for i in range(13, len(s[0]),4):
+                if '$' in j[i]:
+                    j[i] = j[i].replace('$','\n')
+            for i in range(14, len(s[0]),4):
                 if '$' in j[i]:
                     j[i] = j[i].replace('$','\n')
         return s
@@ -445,7 +448,7 @@ class mywindow(QtWidgets.QMainWindow):
                 break
         return int(n/4)
 
-    def oform_mk(self,sp):
+    def oform_mk(self,sp,nom_mk):
         shag = 15
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
@@ -472,40 +475,42 @@ class mywindow(QtWidgets.QMainWindow):
                         F.dob_color_wtab(tabl_mk, i - 1, j, 37, 17, 0)
                 if tabl_mk.item(i - 1, j + 1).text() != '':
                     arr = tabl_mk.item(i - 1, j + 1).text().strip().split('\n')
-                    flag = 0
                     set_sost = set()
                     for k in range(len(arr)):
                         arr2 = arr[k].split(' ')
                         set_sost.add(arr2[1])
                     if len(set_sost) == 1 and 'Завершен' in set_sost:
-                        flag = 2
+                        id_dse = sp[i][6]
+                        arr_op = tabl_mk.item(i - 1, j - 1).text()
+                        arr_op2 = arr_op.split('Операции:\n')
+                        obr = arr_op2[-1].split(";")
+                        ostatok = 0
+                        for op in obr:
+                            nom_op = op
+                            ostatok += self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op)  # зеленый
+                        if ostatok <= 0:
+                            F.dob_color_wtab(tabl_mk, i - 1, j + 1, 0, 127, 0)  # зеленый
+                        break
                     elif len(set_sost) == 1 and 'Выдан' in set_sost:
-                        flag = 0
+                        break
                     else:
-                        flag = 1
-
-                    if flag == 1:  # оранж
-                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)
-                    if flag == 0:
-                        if tabl_mk.currentRow() == -1:
-                            showDialog(self, 'Не выбрана дсе')
-                            return
-                        if tabl_sp_mk.currentRow() == -1:
-                            showDialog(self, 'Не выбрана мк')
-                            return
-                    nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
-                    id_dse = tabl_mk.item(i - 1, 6).text()
-                    arr_op = tabl_mk.item(i - 1, j -1).text()
-                    arr_op2 = arr_op.split('Операции:\n')
-                    obr = arr_op2[-1].split(";")
-                    ostatok = 0
-                    for op in obr:
-                        nom_op = op
-                        ostatok+= self.summ_dost_det_po_nar(nom_mk,id_dse,nom_op) # зеленый
-                    if ostatok <=0:
-                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 0, 127, 0) # зеленый
-
-
+                        F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)# оранж
+                if tabl_mk.item(i - 1, j + 2).text() != '':
+                    arr = tabl_mk.item(i - 1, j + 2).text().strip().split('\n')
+                    set_sost = set()
+                    for k in range(len(arr)):
+                        arr2 = arr[k].split(' ')
+                        if len(arr2) == 1:
+                            set_sost.add('')
+                        else:
+                            set_sost.add(arr2[1])
+                    if len(set_sost) == 1 and 'Исправлен' in set_sost:
+                        F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
+                        break
+                    if 'Неисп-мый' in set_sost:
+                        F.dob_color_wtab(tabl_mk, i - 1, j + 2, 200, 10, 10)  # красный
+                        break
+                    F.dob_color_wtab(tabl_mk, i - 1, j+2, 37, 17, 0)# оранж
 
     def poisk_mk(self):
         obr = self.ui.lineEdit_mk.text()
@@ -583,8 +588,7 @@ class mywindow(QtWidgets.QMainWindow):
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         showDialog(self,'Наряд ' + Nom_nar + ' удален')
         self.zap_prosm_nar()
-        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
-        self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
+        self.zapis_v_mk(nom_op, id_dse,str(nom_mk))
         self.vibor_mk()
         self.zap_tabl_komplektovki()
         return
@@ -611,8 +615,7 @@ class mywindow(QtWidgets.QMainWindow):
         showDialog(self,'ФИО в наряде ' + Nom_nar + ' удалены: ' + fio1 + '; '+ fio2)
         self.zap_tabl_vibor_nar_dlya_imen()
         self.zap_prosm_nar()
-        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
-        self.otmetka_v_mk(nom_op, sp_nar, id_dse,str(nom_mk))
+        self.zapis_v_mk(nom_op, id_dse,str(nom_mk))
         self.vibor_mk()
         self.zap_tabl_komplektovki()
         return
@@ -881,8 +884,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.zap_tabl_vibor_imeni_sla_nar()
         self.zap_tabl_vibor_nar_dlya_imen()
         self.zap_tabl_komplektovki()
-        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk), id_dse, nom_op)
-        self.otmetka_v_mk(nom_op, sp_nar, id_dse, str(nom_mk))
+        self.zapis_v_mk(nom_op, id_dse, str(nom_mk))
         self.vibor_mk()
         showDialog(self, 'Наряд ' + nom_nar + ' выдан на ' + ima1 + ' ' + ima2)
 
@@ -1209,18 +1211,17 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.plainTextEdit_zadanie.clear()
         self.ui.checkBox.setCheckState(1)
         old_ind = tabl_mk.currentRow()
-        sp_nar = self.spis_nar_po_mk_id_op(str(nom_mk),id_dse,nom_op)
-        self.otmetka_v_mk(nom_op,sp_nar,id_dse,str(nom_mk))
+        self.zapis_v_mk(nom_op,id_dse,str(nom_mk))
         self.vibor_mk(old_ind)
         self.zap_prosm_nar()
         self.zap_tabl_komplektovki()
         showDialog(self, 'Безымянный наряд №' + str(nom) + " создан.")
-
-    def spis_nar_po_mk_id_op(self,mk,id,op):
+    
+    def spis_nar_po_mk_id_op(self,mk,id,spis_op):
         sp = []
         nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
         for i in range(1,len(nar)):
-            if nar[i][1].strip() == str(mk) and nar[i][25].strip() == str(id) and nar[i][24].strip() == str(op):
+            if nar[i][1].strip() == str(mk) and nar[i][25].strip() == str(id) and nar[i][24].strip() in spis_op:
                 sost = 'Создан'
                 if nar[i][17].strip() != '' or nar[i][18].strip() != '':
                     sost = 'Выдан'
@@ -1240,29 +1241,47 @@ class mywindow(QtWidgets.QMainWindow):
                                     break
                 sp.append(nar[i][0] + ' ' + sost)
         return sp
-
-    def otmetka_v_mk(self,nom_op,sp_nar,id,mk):
-        tabl_mk = self.ui.tableWidget_vibor_det
-        tabl_sp_mk = self.ui.tableWidget_vibor_mk
-        nom = mk
-        if F.nalich_file(F.scfg('mk_data') + os.sep + nom + '.txt') == False:
-            showDialog(self, 'Не обнаружен файл')
-            return
-        sp_tabl_mk  = F.otkr_f(F.scfg('mk_data') + os.sep + nom + '.txt',False,'|')
-        if sp_tabl_mk  == []:
-            showDialog(self, 'Некорректное содержимое МК')
-            return
+    
+    def otmetka_v_mk(self,nom,spis_op,sp_nar,id,sp_tabl_mk):
         for j in range(1,len(sp_tabl_mk)):
             if sp_tabl_mk[j][6]==id:
                 for i in range(11, len(sp_tabl_mk[0]), 4):
                     if sp_tabl_mk[j][i].strip() != '':
                         obr = sp_tabl_mk[j][i].strip().split('$')
                         obr2 = obr[-1].split(";")
-                        if str(nom_op) in obr2:
+                        if spis_op == obr2:
                             text = '$'.join(sp_nar)
                             sp_tabl_mk[j][i+2] = text
                             F.zap_f(F.scfg('mk_data') + os.sep + nom + '.txt',sp_tabl_mk,'|')
                             return
+
+    def spis_op_po_mk_id_op(self,sp_tabl_mk,id,op):
+        for j in range(1, len(sp_tabl_mk)):
+            if sp_tabl_mk[j][6] == id:
+                for i in range(11, len(sp_tabl_mk[0]), 4):
+                    if sp_tabl_mk[j][i].strip() != '':
+                        obr = sp_tabl_mk[j][i].strip().split('$')
+                        obr2 = obr[-1].split(";")
+                        if op in obr2:
+                            return obr2
+                        return None
+
+    def zapis_v_mk(self,nom_op, id_dse,nom_mk):
+        id_det = id_dse
+        n_op = nom_op
+        if F.nalich_file(F.scfg('mk_data') + os.sep + nom_mk + '.txt') == False:
+            self.showDialog('Не обнаружен файл')
+            return
+        sp_tabl_mk  = F.otkr_f(F.scfg('mk_data') + os.sep + nom_mk + '.txt',False,'|')
+        if sp_tabl_mk  == []:
+            self.showDialog('Некорректное содержимое МК')
+            return
+        spis_op = self.spis_op_po_mk_id_op(sp_tabl_mk,id_det,n_op)
+        if spis_op == None:
+            self.showDialog('Некорректное содержимое списка операций')
+            return
+        spis_nar_mk = self.spis_nar_po_mk_id_op(nom_mk,id_det,spis_op)
+        self.otmetka_v_mk(nom_mk,spis_op, spis_nar_mk, id_det,sp_tabl_mk)
 
 
 
@@ -1367,12 +1386,12 @@ class mywindow(QtWidgets.QMainWindow):
         if parol == True:
             self.setWindowTitle(self.ui.comboBox_spis_users.currentText())
             self.ui.lineEdit_parol.clear()
-            self.ui.comboBox_spis_users.setCurrentIndex(0)
+
         else:
             showDialog(self,"Не верный пароль")
             self.ui.lineEdit_parol.clear()
             return
-        self.ui.tabWidget.setCurrentIndex(1)
+
         self.zapoln_tabl_mk()
         self.zap_tabl_komplektovki()
         self.zap_tabl_vibor_imeni_sla_nar()
