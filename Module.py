@@ -483,20 +483,12 @@ class mywindow(QtWidgets.QMainWindow):
                     for k in range(len(arr)):
                         arr2 = arr[k].split(' ')
                         set_sost.add(arr2[1])
-                    if len(set_sost) == 1 and 'Завершен' in set_sost:
-                        id_dse = sp[i][6]
-                        arr_op = tabl_mk.item(i - 1, j - 1).text()
-                        arr_op2 = arr_op.split('Операции:\n')
-                        obr = arr_op2[-1].split(";")
-                        ostatok = 0
-                        for op in obr:
-                            nom_op = op
-                            ostatok += self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op)  # зеленый
-                        if ostatok <= 0:
-                            F.dob_color_wtab(tabl_mk, i - 1, j + 1, 0, 127, 0)  # зеленый
-                        break
+                    if 'компл.' in set_sost:
+                        F.dob_color_wtab(tabl_mk, i - 1, j + 1, 0, 127, 0)  # зеленый
                     elif len(set_sost) == 1 and 'Выдан' in set_sost:
-                        break
+                        pass
+                    elif len(set_sost) == 1 and 'Создан' in set_sost:
+                        pass
                     else:
                         F.dob_color_wtab(tabl_mk, i - 1, j+1, 37, 17, 0)# оранж
                 if tabl_mk.item(i - 1, j + 2).text() != '':
@@ -510,10 +502,8 @@ class mywindow(QtWidgets.QMainWindow):
                             set_sost.add(arr2[1])
                     if len(set_sost) == 1 and 'Исправлен' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
-                        break
                     if 'Неисп-мый' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 200, 10, 10)  # красный
-                        break
                     F.dob_color_wtab(tabl_mk, i - 1, j+2, 37, 17, 0)# оранж
 
     def poisk_mk(self):
@@ -1093,7 +1083,7 @@ class mywindow(QtWidgets.QMainWindow):
                         if tabl_sp_oper.item(i, 12).text().strip() != '2':
                             break
                     nom_op_p = tabl_sp_oper.item(i, 1).text().strip()
-                    if self.poisk_nar_po_op(nom_mk, id_dse, nom_op_p, True) > 0:
+                    if self.zaversh_nar_po_pred_op(nom_mk, id_dse, nom_op_p) == False:
                         showDialog(self, 'Наряды по предыдущей операции еще не закрыты в полном обьеме')
                         return
 
@@ -1123,8 +1113,6 @@ class mywindow(QtWidgets.QMainWindow):
             self.Migat(3,self.ui.plainTextEdit_zadanie ,"Не описано задание")
             return
 
-
-
         if ' ' in self.ui.lineEdit_cr_nar_pozicii.text():
             self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().strip())
             self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().replace('   ', ' '))
@@ -1147,24 +1135,6 @@ class mywindow(QtWidgets.QMainWindow):
             primechanie = ''
 
         sv_ur = ''
-        #if self.ui.comboBox_cr_nar_etap.currentText == 'Сборка+сварка':
-        #    if primechanie == '':
-        #        norma = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 5).text()
-        #        fakt = self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).text()
-        #    else:
-        #        norma = "99999"
-        #        fakt = "0"
-        #
-        #    norma = float(norma.replace('&','').replace(',','.'))
-        #    fakt = float(fakt.replace(',','.'))
-        #
-        #    tek_norma = float(self.ui.lineEdit_cr_nar_norma.text().replace(',','.'))
-        #    if round(norma-tek_norma-fakt,2) < 0:
-        #        if fakt >= norma:
-        #            sv_ur = str(round(tek_norma,2))
-        #        else:
-        #            sv_ur = str(round(tek_norma + fakt - norma, 2))
-        #        self.ui.tableWidget_vibpr_proekta.item(self.ui.tableWidget_vibpr_proekta.currentRow(), 9).setText(str(round(tek_norma + fakt,2)))
 
 
         with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
@@ -1220,7 +1190,25 @@ class mywindow(QtWidgets.QMainWindow):
         self.zap_prosm_nar()
         self.zap_tabl_komplektovki()
         showDialog(self, 'Безымянный наряд №' + str(nom) + " создан.")
-    
+
+    def zaversh_nar_po_pred_op(self, nom_mk, id_dse, nom_op_p):
+        if F.nalich_file(F.scfg('mk_data') + os.sep + nom_mk + '.txt') == False:
+            self.showDialog('Не обнаружен файл')
+            return
+        sp_tabl_mk  = F.otkr_f(F.scfg('mk_data') + os.sep + nom_mk + '.txt',False,'|')
+        if sp_tabl_mk  == []:
+            self.showDialog('Некорректное содержимое МК')
+            return
+        stroka = F.naiti_v_spis_1_1(sp_tabl_mk,6,id_dse)
+        for i in range(11,len(sp_tabl_mk[stroka]),4):
+            tmp = sp_tabl_mk[stroka][i].split('$')
+            if nom_op_p in tmp[-1]:
+                spis_nar = sp_tabl_mk[stroka][i+2].split('$')
+                if spis_nar[0] == 'Полный компл.':
+                    return True
+        return False
+
+
     def spis_nar_po_mk_id_op(self,mk,id,spis_op):
         sp = []
         nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
@@ -1268,21 +1256,21 @@ class mywindow(QtWidgets.QMainWindow):
                         obr2 = obr[-1].split(";")
                         if op in obr2:
                             return obr2
-                        return None
+                return None
 
     def zapis_v_mk(self,nom_op, id_dse,nom_mk):
         id_det = id_dse
         n_op = nom_op
         if F.nalich_file(F.scfg('mk_data') + os.sep + nom_mk + '.txt') == False:
-            self.showDialog('Не обнаружен файл')
+            showDialog(self,'Не обнаружен файл')
             return
         sp_tabl_mk  = F.otkr_f(F.scfg('mk_data') + os.sep + nom_mk + '.txt',False,'|')
         if sp_tabl_mk  == []:
-            self.showDialog('Некорректное содержимое МК')
+            showDialog(self,'Некорректное содержимое МК')
             return
         spis_op = self.spis_op_po_mk_id_op(sp_tabl_mk,id_det,n_op)
         if spis_op == None:
-            self.showDialog('Некорректное содержимое списка операций')
+            showDialog(self,'Некорректное содержимое списка операций')
             return
         spis_nar_mk = self.spis_nar_po_mk_id_op(nom_mk,id_det,spis_op)
         self.otmetka_v_mk(nom_mk,spis_op, spis_nar_mk, id_det,sp_tabl_mk)
