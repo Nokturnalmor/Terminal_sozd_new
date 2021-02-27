@@ -264,6 +264,7 @@ class mywindow(QtWidgets.QMainWindow):
         if k <4:
             self.ui.tabWidget_2.setCurrentIndex(2)
 
+
     def check_vneplan_rab(self):
         chek_vneplan = self.ui.checkBox_vneplan_rab
         if chek_vneplan.checkState() == 2:
@@ -454,6 +455,21 @@ class mywindow(QtWidgets.QMainWindow):
         sp_tk2 = self.oform_tk_pod_form(sp_tk2)
         F.zapoln_wtabl(self,sp_tk2,tabl_sp_oper,0,0,'','',300,True,'')
 
+        r = tabl_mk.currentRow()
+        spis_mk = F.spisok_iz_wtabl(tabl_mk, "")
+
+        for j in range(11, len(spis_mk[r]), 4):
+            if spis_mk[r][j] != '' and 'олный к' not in spis_mk[r][j + 2]:
+                arr_nom_op = spis_mk[r][j].split('\n')
+                arr_nom_op2 = arr_nom_op[-1].split(';')
+                nom_op = arr_nom_op2[0]
+                break
+        for i in range(tabl_sp_oper.rowCount()):
+            if tabl_sp_oper.item(i,1).text() == nom_op:
+                tabl_sp_oper.selectRow(i)
+                break
+
+
     def udal_kol(self,s,nom):
         for i in range(0, len(s)):
             s[i].pop(nom)
@@ -495,7 +511,7 @@ class mywindow(QtWidgets.QMainWindow):
             self.showDialog('Некорректное содержимое МК')
             return
         sp = self.oformlenie_sp_pod_mk(sp)
-        F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 100, True, '', 35)
+        F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 100, True, '', 40)
         self.oform_mk(sp,nom)
         tabl_mk.setCurrentCell(stroka,1)
 
