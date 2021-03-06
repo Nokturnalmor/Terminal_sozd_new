@@ -16,13 +16,13 @@ proverka_list_puti = ['employee','Riba','Naryad','FiltrEmp','BD_Proect','Etapi',
 proverka_list_znach = ['ogran_shir','Stile']
 
 
-
 class mywindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(mywindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.modal = 0
+
         #self.setFixedSize(1280, 720)
         self.setWindowTitle("Создание нарядов")
         self.ui.tabWidget.setCurrentIndex(0)
@@ -35,10 +35,10 @@ class mywindow(QtWidgets.QMainWindow):
         #self.ui.tableWidget_vibpr_proekta.itemClicked.connect(self.tabl_vibor_proekta)
 
 
-
-
         self.ui.pushButton_create_nar.clicked.connect(self.sozd_naryad)
-        #self.ui.tabWidget.tabBarClicked.connect(self.tab_click)
+
+        self.ui.tabWidget_2.currentChanged.connect(self.tab_click)
+
         tabl_vibor_nar = self.ui.tableWidget_vibor_nar_dlya_imen
         tabl_vibor_nar.itemClicked.connect(self.tabl_vibor_nar_dla_imen)
         F.ust_cvet_videl_tab(tabl_vibor_nar)
@@ -77,6 +77,11 @@ class mywindow(QtWidgets.QMainWindow):
         tabl_vib_oper.setSelectionMode(1)
         F.ust_cvet_videl_tab(tabl_vib_oper)
         tabl_vib_oper.clicked.connect(self.vvod_oper)
+
+        tabl_vib_brak = self.ui.tableWidget_vibor_brak
+        F.ust_cvet_videl_tab(tabl_vib_brak)
+        tabl_vibor_nar.setSelectionBehavior(1)
+        tabl_vibor_nar.setSelectionMode(1)
 
         line_kolvo = self.ui.lineEdit_cr_nar_kolvo
         line_kolvo.textChanged.connect(self.rasch_norm_vr)
@@ -168,16 +173,23 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.lineEdit_parol.setText('2020')
         self.ui.comboBox_spis_users.setCurrentIndex(2)
 
+
+
     def keyReleaseEvent(self, e):
         # print(str(int(e.modifiers())) + ' ' +  str(e.key()))
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
         tableWidget_tabl_komplektovki = self.ui.tableWidget_tabl_komplektovki
+        if e.key() == 16777235  or e.key() == 16777237  or e.key() ==  16777234 or e.key() == 16777236:
+            if tabl_sp_oper.hasFocus() == True:
+                self.vvod_oper()
+                return
         if self.modal == 0:
             if e.key() == 16777220:
                 if tabl_mk.hasFocus() == True:
                     self.ui.tabWidget_2.setCurrentIndex(2)
+                    self.vvod_oper()
                     self.modal = 1
                 if tabl_sp_mk.hasFocus() == True:
                     self.ui.tabWidget_2.setCurrentIndex(1)
@@ -187,6 +199,7 @@ class mywindow(QtWidgets.QMainWindow):
                         self.modal = 0
                         return
                     self.sozd_naryad()
+
                 if tableWidget_tabl_komplektovki.hasFocus() == True:
                     if tableWidget_tabl_komplektovki.item(tableWidget_tabl_komplektovki.currentRow(),7).text() == '':
                         self.komplektovano()
@@ -208,6 +221,14 @@ class mywindow(QtWidgets.QMainWindow):
             for i in range(tabl_mk.rowCount()):
                 flag_kompl = 0
                 for j in range(11,tabl_mk.columnCount(),4):
+                    if tabl_mk.item(i, j + 3).text() != '':
+                        arr_tmp = tabl_mk.item(i, j + 3).text().split('\n')
+                        for k in range(len(arr_tmp)):
+                            arr_tmp2 = arr_tmp[k].split(' ')
+                            if arr_tmp2[-1] == '' or arr_tmp2[-1] == 'Неисп-мый':
+                                flag_kompl = 1
+                                break
+
                     if tabl_mk.item(i,j+1).text() != '' and 'Полный' not in tabl_mk.item(i,j+2).text():
                         flag_kompl = 1
                         break
@@ -457,17 +478,19 @@ class mywindow(QtWidgets.QMainWindow):
 
         r = tabl_mk.currentRow()
         spis_mk = F.spisok_iz_wtabl(tabl_mk, "")
-
+        nom_op = None
         for j in range(11, len(spis_mk[r]), 4):
             if spis_mk[r][j] != '' and 'олный к' not in spis_mk[r][j + 2]:
+                if nom_op != None:
+                    break
                 arr_nom_op = spis_mk[r][j].split('\n')
                 arr_nom_op2 = arr_nom_op[-1].split(';')
                 nom_op = arr_nom_op2[0]
-                break
-        for i in range(tabl_sp_oper.rowCount()):
-            if tabl_sp_oper.item(i,1).text() == nom_op:
-                tabl_sp_oper.selectRow(i)
-                break
+
+                for i in range(tabl_sp_oper.rowCount()):
+                    if tabl_sp_oper.item(i,1).text() == nom_op:
+                        tabl_sp_oper.selectRow(i)
+                        break
 
 
     def udal_kol(self,s,nom):
@@ -538,6 +561,36 @@ class mywindow(QtWidgets.QMainWindow):
             else:
                 break
         return int(n/4)
+
+    def tab_click(self):
+        tab = self.ui.tabWidget_2
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        spis_brak_tabl = [['Номер акта','Мастер ОТК','Дата','Номер наряда','Фото','Вид брака','Категория брака','Примечание']]
+        if tabl_sp_mk.currentRow() == -1:
+            F.msgbox("Не выбрана МК")
+            return
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
+        if tab.currentIndex() == 3:
+            tabl_brak = self.ui.tableWidget_vibor_brak
+
+            Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+            spis_brak = F.otkr_f(F.tcfg('BDact'),False,"|",False,False)
+            for i in range(len(spis_brak)):
+                nom_nar = spis_brak[i][3].replace("Номер наряда:","")
+                for j in range(len(Stroki_nar)):
+                    if Stroki_nar[j][0] == nom_nar:
+                        if nom_mk == Stroki_nar[j][1]:
+                            spis_brak_tabl.append([spis_brak[i][0].replace('Номер акта:',''),
+                                                   spis_brak[i][1].replace('Мастер ОТК:', ''),
+                                                   spis_brak[i][2].replace('Дата:', ''),
+                                                   spis_brak[i][3].replace('Номер наряда:', ''),
+                                                   spis_brak[i][4].replace('Фото:', ''),
+                                                   spis_brak[i][5].replace('Вид брака:', ''),
+                                                   spis_brak[i][6].replace('Категория брака:', ''),
+                                                   spis_brak[i][7].replace('Примечание:', ''),
+                                                   ])
+                            break
+            F.zapoln_wtabl(self,spis_brak_tabl,tabl_brak,0,0,(),(),200,True,"")
 
     def oform_mk(self,sp,nom_mk):
         shag = 15
@@ -1601,6 +1654,8 @@ class mywindow(QtWidgets.QMainWindow):
         msgBox.setWindowTitle("Внимание!")
         msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)  # | QtWidgets.QMessageBox.Cancel)
         msgBox.setWindowModality(QtCore.Qt.WindowModal)
+        msgBox.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint)
+        msgBox.setFocus()
         returnValue = msgBox.exec()
         #self.modal = 0
         # msgBox.buttonClicked.connect(msgButtonClick)

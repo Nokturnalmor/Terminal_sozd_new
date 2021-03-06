@@ -860,7 +860,7 @@
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_19">
             <item>
-             <widget class="QTableWidget" name="tableWidget_vibor_oper_2">
+             <widget class="QTableWidget" name="tableWidget_vibor_brak">
               <property name="maximumSize">
                <size>
                 <width>7215</width>
