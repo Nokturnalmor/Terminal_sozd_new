@@ -80,8 +80,9 @@ class mywindow(QtWidgets.QMainWindow):
 
         tabl_vib_brak = self.ui.tableWidget_vibor_brak
         F.ust_cvet_videl_tab(tabl_vib_brak)
-        tabl_vibor_nar.setSelectionBehavior(1)
-        tabl_vibor_nar.setSelectionMode(1)
+        tabl_vib_brak.setSelectionBehavior(1)
+        tabl_vib_brak.setSelectionMode(1)
+        tabl_vib_brak.doubleClicked.connect(self.dblclk_brak)
 
         line_kolvo = self.ui.lineEdit_cr_nar_kolvo
         line_kolvo.textChanged.connect(self.rasch_norm_vr)
@@ -208,6 +209,39 @@ class mywindow(QtWidgets.QMainWindow):
         else:
             self.modal = 0
 
+    def dblclk_brak(self):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        tabl_sp_oper = self.ui.tableWidget_vibor_oper
+        tabl_vib_brak = self.ui.tableWidget_vibor_brak
+        if tabl_vib_brak.currentIndex() == -1:
+            return
+        nom_nar = tabl_vib_brak.item(tabl_vib_brak.currentRow(),3).text()
+        N_act = tabl_vib_brak.item(tabl_vib_brak.currentRow(),0).text()
+        brak_t = tabl_vib_brak.item(tabl_vib_brak.currentRow(),5).text()
+
+        spis_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        id = F.naiti_v_spis_1_1(spis_nar,0,nom_nar,25)
+        nom_op = F.naiti_v_spis_1_1(spis_nar, 0, nom_nar, 24)
+        if id == None:
+            F.msgbox("Не найден наряд " + nom_nar)
+            return
+        if tabl_sp_mk.currentIndex() == -1:
+            F.msgbox("Не выбрана МК")
+            return
+        nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
+        spis_mk = F.otkr_f(F.scfg('mk_data') + os.sep + nom_mk + '.txt',False,'|')
+        stroka = F.naiti_v_spis_1_1(spis_mk,6,id)
+        tabl_mk.selectRow(stroka-1)
+        self.vibor_operacii()
+        self.ui.tabWidget_2.setCurrentIndex(2)
+        for i in range(tabl_sp_oper.rowCount()):
+            if tabl_sp_oper.item(i,1).text() == nom_op:
+                tabl_sp_oper.selectRow(i)
+        self.vvod_oper()
+        self.ui.checkBox_vneplan_rab.setCheckState(2)
+        self.statusBar().showMessage("Акт №" + N_act + " по наряду №" + nom_nar + "(" + brak_t + ")")
+
     def rezjim_mk(self):
         check_yprosh = self.ui.checkBox_min_rezhjim
         tabl_mk = self.ui.tableWidget_vibor_det
@@ -288,6 +322,7 @@ class mywindow(QtWidgets.QMainWindow):
 
     def check_vneplan_rab(self):
         chek_vneplan = self.ui.checkBox_vneplan_rab
+        self.statusBar().showMessage("")
         if chek_vneplan.checkState() == 2:
             self.ui.lineEdit_cr_nar_norma.setEnabled(True)
             self.ui.plainTextEdit_zadanie.setEnabled(True)
@@ -318,7 +353,7 @@ class mywindow(QtWidgets.QMainWindow):
         text_zad = self.ui.plainTextEdit_zadanie
         chek_vneplan = self.ui.checkBox_vneplan_rab
         self.check_vneplan_rab()
-
+        self.statusBar().showMessage("")
         line_nom_pr.setText('')
         line_nom_pu.setText('')
         line_kolvo.setText('')
@@ -326,6 +361,9 @@ class mywindow(QtWidgets.QMainWindow):
         line_dse.setText('')
         text_zad.setPlainText('')
         chek_vneplan.setCheckState(0)
+
+        if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12) == None:
+            return
 
         if tabl_sp_oper.item(tabl_sp_oper.currentRow(),12).text().strip() == '2':
             return
@@ -578,7 +616,7 @@ class mywindow(QtWidgets.QMainWindow):
             for i in range(len(spis_brak)):
                 nom_nar = spis_brak[i][3].replace("Номер наряда:","")
                 for j in range(len(Stroki_nar)):
-                    if Stroki_nar[j][0] == nom_nar:
+                    if Stroki_nar[j][0] == nom_nar and "Исправлен по наряду №" not in spis_brak[i][7]:
                         if nom_mk == Stroki_nar[j][1]:
                             spis_brak_tabl.append([spis_brak[i][0].replace('Номер акта:',''),
                                                    spis_brak[i][1].replace('Мастер ОТК:', ''),
@@ -995,7 +1033,8 @@ class mywindow(QtWidgets.QMainWindow):
             if nomer_porof_po_isp == None:
                 self.showDialog('Не найден в sp_emp')
                 return
-            if nom_prof_nar != nomer_porof_po_isp:
+
+            if nom_prof_nar != "" and nom_prof_nar != nomer_porof_po_isp:
                 ima_prof_po_bd = self.prof_po_bd(nom_prof_nar)
                 if ima_prof_po_bd == None:
                     ima_prof_po_bd = 'другой'
@@ -1009,7 +1048,7 @@ class mywindow(QtWidgets.QMainWindow):
             if nomer_porof_po_isp == None:
                 self.showDialog('Не найден в sp_emp')
                 return
-            if nom_prof_nar != nomer_porof_po_isp:
+            if nom_prof_nar != "" and nom_prof_nar != nomer_porof_po_isp:
                 ima_prof_po_bd = self.prof_po_bd(nom_prof_nar)
                 self.showDialog('Профессия ' + ima2 + ' должна быть ' + ima_prof_po_bd)
                 return
@@ -1277,15 +1316,12 @@ class mywindow(QtWidgets.QMainWindow):
             self.Migat(3, self.ui.checkBox, "Не выбрано состояние")
             return
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
-        primechanie = ''
-        for i in range(11, tabl_mk.columnCount(),4):
-            if nom_op in tabl_mk.item(tabl_mk.currentRow(),i).text() and 'Операции' in tabl_mk.item(tabl_mk.currentRow(),i).text():
-                primechanie = tabl_mk.item(tabl_mk.currentRow(),i+3).text()
-                break
-        if "Акт №" in primechanie and " по наряду №" in primechanie:
-            primechanie = primechanie + ' '
-        else:
-            primechanie = ''
+        primechanie = self.statusBar().currentMessage()
+        #for i in range(11, tabl_mk.columnCount(),4):
+        #    if nom_op in tabl_mk.item(tabl_mk.currentRow(),i).text() and 'Операции' in tabl_mk.item(tabl_mk.currentRow(),i).text():
+        #        primechanie = tabl_mk.item(tabl_mk.currentRow(),i+3).text()
+        #        break
+
 
         sv_ur = ''
 
@@ -1307,7 +1343,12 @@ class mywindow(QtWidgets.QMainWindow):
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
         nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
-        kod_prof = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 6).text().strip()
+
+        if chek_vneplan.checkState() == 2:
+            kod_prof = ""
+        else:
+            kod_prof = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 6).text().strip()
+
         ves_det = F.valm(tabl_mk.item(tabl_mk.currentRow(),8).text()) * kol
         ves_det = round(ves_det,1)
         sp_BD_Proect = F.otkr_f(F.tcfg('BD_Proect'),False,'|')
