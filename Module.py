@@ -219,7 +219,22 @@ class mywindow(QtWidgets.QMainWindow):
         nom_nar = tabl_vib_brak.item(tabl_vib_brak.currentRow(),3).text()
         N_act = tabl_vib_brak.item(tabl_vib_brak.currentRow(),0).text()
         brak_t = tabl_vib_brak.item(tabl_vib_brak.currentRow(),5).text()
-
+        n_k = F.nom_kol_po_imen(tabl_vib_brak,'Фото')
+        if tabl_vib_brak.currentColumn() == n_k:
+            if tabl_vib_brak.item(tabl_vib_brak.currentRow(),n_k).text() != "":
+                sp_foto = tabl_vib_brak.item(tabl_vib_brak.currentRow(),n_k).text().split(')(')
+                sp_pap = F.spis_files(F.scfg('foto_brak'))[0][1]
+                for j in range(len(sp_foto)):
+                    sp_foto[j] = sp_foto[j].replace(')', '')
+                    sp_foto[j] = sp_foto[j].replace('(', '')
+                    for i in range(len(sp_pap)):
+                        if F.nalich_file(F.scfg('foto_brak') + os.sep + sp_pap[i] + os.sep + sp_foto[j]) == True:
+                            F.zapyst_file(F.scfg('foto_brak') + os.sep + sp_pap[i] + os.sep + sp_foto[j])
+                return
+        n_k = F.nom_kol_po_imen(tabl_vib_brak,'Категория брака')
+        if tabl_vib_brak.item(tabl_vib_brak.currentRow(),n_k).text() == "Неисправимый":
+            F.msgbox('Брак неисправимый, необходимо заказать ДСЕ на новое изготовление через служебную по форме ПДО')
+            return
         spis_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
         id = F.naiti_v_spis_1_1(spis_nar,0,nom_nar,25)
         nom_op = F.naiti_v_spis_1_1(spis_nar, 0, nom_nar, 24)
@@ -1258,14 +1273,15 @@ class mywindow(QtWidgets.QMainWindow):
         if F.is_numeric(self.ui.lineEdit_cr_nar_kolvo.text().strip()) == False:
             self.Migat(3,self.ui.lineEdit_cr_nar_kolvo ,"Количество должно быть числом")
             return
-
         kol = int(line_kolvo.text().strip())
+        if kol == 0:
+            self.showDialog('Количество не может быть 0')
+            return
+
         vneplan = 'Внеплана'
         if chek_vneplan.checkState() == 0:
             vneplan = ''
-            if kol == 0:
-                self.showDialog('Количество не может быть 0')
-                return
+
             if kol > self.summ_dost_det_po_nar(nom_mk, id_dse, nom_op):
                 self.showDialog('Кол-во деталей превышет допустимое')
                 return
