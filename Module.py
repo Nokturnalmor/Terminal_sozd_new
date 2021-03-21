@@ -698,9 +698,12 @@ class mywindow(QtWidgets.QMainWindow):
                             set_sost.add(arr2[1])
                     if len(set_sost) == 1 and 'Исправлен' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
+                    if len(set_sost) == 1 and 'Изгот.вновь' in set_sost:
+                        F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
                     if 'Неисп-мый' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 200, 10, 10)  # красный
-                    F.dob_color_wtab(tabl_mk, i - 1, j+2, 37, 17, 0)# оранж
+                    else:
+                        F.dob_color_wtab(tabl_mk, i - 1, j+2, 37, 17, 0)# оранж
 
     def poisk_mk(self):
         obr = self.ui.lineEdit_mk.text()
@@ -730,7 +733,8 @@ class mywindow(QtWidgets.QMainWindow):
             self.showDialog('Не найден bd_mk')
             return
         sp = F.otkr_f(F.tcfg('bd_mk'), separ='|')
-        F.zapoln_wtabl(self, sp, tabl_sp_mk, 0, 0, '', '', 200, True, '', 10)
+        isp_filt = ['Открыта']
+        F.zapoln_wtabl(self, sp, tabl_sp_mk, 0, 0, isp_filt, '', 200, True, '', 10)
 
     def nekomplekt(self):
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
