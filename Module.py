@@ -1224,6 +1224,8 @@ class mywindow(QtWidgets.QMainWindow):
             self.showDialog('Не найдена база с нарядами')
             return
         max_det = self.max_det_skompl(nom_op,id_dse)
+        if max_det == None:
+            max_det = 0
         summ_det = 0
         for i in range(len(sp_nar)):
             if sp_nar[i][1] == nom_mar and sp_nar[i][25] == id_dse and sp_nar[i][24] == nom_op and sp_nar[i][21] == '':
