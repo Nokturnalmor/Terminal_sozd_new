@@ -104,7 +104,7 @@ class mywindow(QtWidgets.QMainWindow):
         check_yprosh.clicked.connect(self.rezjim_mk)
 
         button_obnov = self.ui.pushButton_obnov_mk
-        button_obnov.clicked.connect(self.vibor_mk_0)
+        button_obnov.clicked.connect(self.vibor_mk_1)
 
         
 
@@ -219,6 +219,9 @@ class mywindow(QtWidgets.QMainWindow):
         nom_nar = tabl_vib_brak.item(tabl_vib_brak.currentRow(),3).text()
         N_act = tabl_vib_brak.item(tabl_vib_brak.currentRow(),0).text()
         brak_t = tabl_vib_brak.item(tabl_vib_brak.currentRow(),5).text()
+        kol_det_brak = tabl_vib_brak.item(tabl_vib_brak.currentRow(),8).text()
+        if F.is_numeric(kol_det_brak) == False:
+            kol_det_brak = 0
         n_k = F.nom_kol_po_imen(tabl_vib_brak,'Фото')
         if tabl_vib_brak.currentColumn() == n_k:
             if tabl_vib_brak.item(tabl_vib_brak.currentRow(),n_k).text() != "":
@@ -233,7 +236,7 @@ class mywindow(QtWidgets.QMainWindow):
                 return
         n_k = F.nom_kol_po_imen(tabl_vib_brak,'Категория брака')
         if tabl_vib_brak.item(tabl_vib_brak.currentRow(),n_k).text() == "Неисправимый":
-            F.msgbox('Брак неисправимый, необходимо заказать ДСЕ на новое изготовление через служебную по форме ПДО')
+            F.msgbox('Брак неисправимый! Необходимо заказать ДСЕ на новое изготовление через служебную по форме ПДО')
             return
         spis_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
         id = F.naiti_v_spis_1_1(spis_nar,0,nom_nar,25)
@@ -255,6 +258,7 @@ class mywindow(QtWidgets.QMainWindow):
                 tabl_sp_oper.selectRow(i)
         self.vvod_oper()
         self.ui.checkBox_vneplan_rab.setCheckState(2)
+        self.ui.lineEdit_cr_nar_kolvo.setText(str(kol_det_brak))
         self.statusBar().showMessage("Акт №" + N_act + " по наряду №" + nom_nar + "(" + brak_t + ")")
 
     def rezjim_mk(self):
@@ -570,6 +574,18 @@ class mywindow(QtWidgets.QMainWindow):
         self.zapoln_tabl_mk()
 
 
+    def vibor_mk_1(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
+        tabl_mk = self.ui.tableWidget_vibor_mk
+        nom_mk = tabl_mk.item(tabl_mk.currentRow(),F.nom_kol_po_imen(tabl_mk,'Номер')).text()
+        self.zapoln_tabl_mk()
+        for i in range(tabl_mk.rowCount()):
+            if tabl_mk.item(i,F.nom_kol_po_imen(tabl_mk,'Номер')).text() == nom_mk:
+                tabl_mk.setCurrentCell(i,0)
+                break
+        self.vibor_mk_0()
+
     def vibor_mk_0(self):
         self.vibor_mk()
     def vibor_mk(self, old_strok = -1):
@@ -589,6 +605,7 @@ class mywindow(QtWidgets.QMainWindow):
         sp = self.oformlenie_sp_pod_mk(sp)
         F.zapoln_wtabl(self, sp, tabl_mk, 0, 0, '', '', 100, True, '', 40)
         self.oform_mk(sp,nom)
+
         tabl_mk.setCurrentCell(stroka,1)
 
 
@@ -618,31 +635,39 @@ class mywindow(QtWidgets.QMainWindow):
     def tab_click(self):
         tab = self.ui.tabWidget_2
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
-        spis_brak_tabl = [['Номер акта','Мастер ОТК','Дата','Номер наряда','Фото','Вид брака','Категория брака','Примечание']]
+        if self.windowTitle() == "Создание нарядов":
+            return
+        if tab.currentIndex() == 2:
+            self.vvod_oper()
+
         if tabl_sp_mk.currentRow() == -1:
             F.msgbox("Не выбрана МК")
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
         if tab.currentIndex() == 3:
+            spis_brak_tabl = [
+                ['Номер акта', 'Мастер ОТК', 'Дата', 'Номер наряда', 'Фото', 'Вид брака', 'Категория брака',
+                 'Примечание','Количество']]
             tabl_brak = self.ui.tableWidget_vibor_brak
-
             Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
             spis_brak = F.otkr_f(F.tcfg('BDact'),False,"|",False,False)
             for i in range(len(spis_brak)):
                 nom_nar = spis_brak[i][3].replace("Номер наряда:","")
                 for j in range(len(Stroki_nar)):
-                    if Stroki_nar[j][0] == nom_nar and "Исправлен по наряду №" not in spis_brak[i][7]:
-                        if nom_mk == Stroki_nar[j][1]:
-                            spis_brak_tabl.append([spis_brak[i][0].replace('Номер акта:',''),
-                                                   spis_brak[i][1].replace('Мастер ОТК:', ''),
-                                                   spis_brak[i][2].replace('Дата:', ''),
-                                                   spis_brak[i][3].replace('Номер наряда:', ''),
-                                                   spis_brak[i][4].replace('Фото:', ''),
-                                                   spis_brak[i][5].replace('Вид брака:', ''),
-                                                   spis_brak[i][6].replace('Категория брака:', ''),
-                                                   spis_brak[i][7].replace('Примечание:', ''),
-                                                   ])
-                            break
+                    if Stroki_nar[j][0] == nom_nar:
+                        if "Изгот.вновь по МК №" not in spis_brak[i][7] \
+                                and "Исправлен по наряду №" not in spis_brak[i][7]:
+                            if nom_mk == Stroki_nar[j][1]:
+                                spis_brak_tabl.append([spis_brak[i][0].replace('Номер акта:',''),
+                                                       spis_brak[i][1].replace('Мастер ОТК:', ''),
+                                                       spis_brak[i][2].replace('Дата:', ''),
+                                                       spis_brak[i][3].replace('Номер наряда:', ''),
+                                                       spis_brak[i][4].replace('Фото:', ''),
+                                                       spis_brak[i][5].replace('Вид брака:', ''),
+                                                       spis_brak[i][6].replace('Категория брака:', ''),
+                                                       spis_brak[i][7].replace('Примечание:', ''),
+                                                       spis_brak[i][8].replace('Количество:', '')])
+                                break
             F.zapoln_wtabl(self,spis_brak_tabl,tabl_brak,0,0,(),(),200,True,"")
 
     def oform_mk(self,sp,nom_mk):
@@ -700,6 +725,8 @@ class mywindow(QtWidgets.QMainWindow):
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
                     if len(set_sost) == 1 and 'Изгот.вновь' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
+                    if len(set_sost) == 2 and 'Изгот.вновь' in set_sost and 'Исправлен' in set_sost:
+                        F.dob_color_wtab(tabl_mk, i - 1, j + 2, 0, 127, 0)  # зеленый
                     if 'Неисп-мый' in set_sost:
                         F.dob_color_wtab(tabl_mk, i - 1, j + 2, 200, 10, 10)  # красный
                     else:
@@ -737,6 +764,8 @@ class mywindow(QtWidgets.QMainWindow):
         F.zapoln_wtabl(self, sp, tabl_sp_mk, 0, 0, isp_filt, '', 200, True, '', 10)
 
     def nekomplekt(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
         tmp_strok = i
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
@@ -754,6 +783,8 @@ class mywindow(QtWidgets.QMainWindow):
         return
 
     def komplektovano(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
         tmp_strok = i
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
@@ -775,6 +806,8 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def delete_naryad(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
         self.statusBar().showMessage(self.ui.tableWidget_spispk_nar_dla_korrect.currentItem().text())
         i = self.ui.tableWidget_spispk_nar_dla_korrect.currentRow()
         Nom_nar = self.ui.tableWidget_spispk_nar_dla_korrect.item(i, 0).text()
@@ -962,6 +995,8 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def prim_opovesh(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
         body = self.ui.plainTextEdit_opovesh.toPlainText()
         arr = body.split('\n')
         with open(cfg['Opovesh'] + '\\Opovesh.txt', 'w') as f:
@@ -1031,8 +1066,8 @@ class mywindow(QtWidgets.QMainWindow):
             return
         Stroki_nar = F.otkr_f(F.scfg('Naryad') + os.sep + 'Naryad.txt',False,'|')
         nom_nar = tabl_vib_nar.item(tabl_vib_nar.currentRow(), 0).text()
-        nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar,0,nom_nar,26)
-        kol_rab = int(F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27))
+        nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar,0,nom_nar,26,False,True)
+        kol_rab = int(F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27,False,True))
 
         ima1 = label_isp1.text().replace('  ',' ')
         ima2 = label_isp2.text().replace('  ',' ')
@@ -1072,8 +1107,8 @@ class mywindow(QtWidgets.QMainWindow):
                 self.showDialog('Профессия ' + ima2 + ' должна быть ' + ima_prof_po_bd)
                 return
         tmp_strok = tabl_vib_nar.currentRow()
-        Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
-        for i in range(0, len(Stroki_nar)):
+        #Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        for i in range(len(Stroki_nar)-1,-1,-1):
             if Stroki_nar[i][0] == self.ui.label_10_vibr_nar.text():
                 Stroki_nar[i][17] = self.ui.label_12_ispoln1.text()
                 Stroki_nar[i][18] = self.ui.label_13_ispoln2.text()
@@ -1082,12 +1117,19 @@ class mywindow(QtWidgets.QMainWindow):
                 nom_op = Stroki_nar[i][24]
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
+        print('1  ' + F.now())
         self.zap_prosm_nar()
+        print('2  ' + F.now())
         self.zap_tabl_vibor_imeni_sla_nar()
+        print('3  ' + F.now())
         self.zap_tabl_vibor_nar_dlya_imen()
+        print('4  ' + F.now())
         self.zap_tabl_komplektovki()
+        print('5  ' + F.now())
         self.zapis_v_mk(nom_op, id_dse, str(nom_mk))
+        print('6  ' + F.now())
         self.vibor_mk()
+        print('7  ' + F.now())
         self.ui.label_10_vibr_nar.setText("-----")
         tabl_vib_nar.selectRow(tmp_strok)
         self.showDialog('Наряд ' + nom_nar + ' выдан на ' + ima1 + ' ' + ima2)
@@ -1184,6 +1226,7 @@ class mywindow(QtWidgets.QMainWindow):
         filtr_col = {0, 1, 2}
         iskl_slov = {}
         self.zapoln_tabl(Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
+
         self.obnovit_progress_imena()
 
     def zap_TextEdit_opovesh(self):
@@ -1256,6 +1299,8 @@ class mywindow(QtWidgets.QMainWindow):
 
 
     def sozd_naryad(self):
+        if self.windowTitle() == "Создание нарядов":
+            return
         tabl_mk = self.ui.tableWidget_vibor_det
         tabl_sp_oper = self.ui.tableWidget_vibor_oper
         tabl_sp_mk = self.ui.tableWidget_vibor_mk
