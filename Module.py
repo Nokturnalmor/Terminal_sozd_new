@@ -12,7 +12,7 @@ import Cust_Functions as F
 
 cfg = config.Config('Config\CFG.cfg') #файл конфига, находится п папке конфиг
 
-proverka_list_puti = ['employee','Riba','Naryad','FiltrEmp','BD_Proect','Etapi','BDzhurnal','Filtr_rab','BDact']
+proverka_list_puti = ['employee','Riba','Naryad','FiltrEmp','BD_Proect','BDzhurnal','Filtr_rab','BDact']
 proverka_list_znach = ['ogran_shir','Stile']
 
 
@@ -113,7 +113,6 @@ class mywindow(QtWidgets.QMainWindow):
         self.action__change_pass = self.findChild(QtWidgets.QAction, "action__change_pass")
         self.action__change_pass.triggered.connect(self.Smena_Parol)
         self.ui.radioButton_ispoln1.setChecked(True)
-        self.ui.checkBox.setCheckState(1)
         self.ui.checkBox_vecher.setCheckState(1)
         self.ui.checkBox_vneplan_rab.setTristate(False)
         self.ui.checkBox_vneplan_rab.stateChanged.connect(self.check_vneplan_rab)
@@ -165,12 +164,6 @@ class mywindow(QtWidgets.QMainWindow):
             if FCN.etap_po_fio(line, Stroki_emp) != "":
                 line = line.encode('cp1251', errors='ignore').decode('cp1251')
                 self.ui.comboBox_spis_users.addItem(line)
-        with open(cfg['Etapi'] + '\\Etapi.txt', 'r') as f:
-            Stroki = f.readlines()
-        self.ui.comboBox_cr_nar_etap.addItem("")
-        for item in Stroki:
-            self.ui.comboBox_cr_nar_etap.addItem(item.strip())
-
         self.ui.lineEdit_parol.setText('2020')
         self.ui.comboBox_spis_users.setCurrentIndex(2)
 
@@ -245,6 +238,7 @@ class mywindow(QtWidgets.QMainWindow):
             F.msgbox("Не найден наряд " + nom_nar)
             return
         if tabl_sp_mk.currentIndex() == -1:
+            self.ui.tabWidget_2.setCurrentIndex(0)
             F.msgbox("Не выбрана МК")
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
@@ -302,7 +296,24 @@ class mywindow(QtWidgets.QMainWindow):
                     tabl_mk.setColumnHidden(j+3, True)
             for j in range(3,11):
                 tabl_mk.setColumnHidden(j, True)
-
+            for j in range(11, tabl_mk.columnCount(), 4):
+                flag_gotova = 1
+                for i in range(tabl_mk.rowCount()):
+                    if tabl_mk.isRowHidden(i) == False:
+                        if 'олный компл.' not in tabl_mk.item(i, j+1).text():
+                            flag_gotova = 0
+                            break
+                        if 'олный компл.' not in tabl_mk.item(i, j+2).text():
+                            flag_gotova = 0
+                            break
+                        if tabl_mk.item(i, j+3).text() != "":
+                            flag_gotova = 0
+                            break
+                if flag_gotova == 1:
+                    tabl_mk.setColumnHidden(j, True)
+                    tabl_mk.setColumnHidden(j + 1, True)
+                    tabl_mk.setColumnHidden(j + 2, True)
+                    tabl_mk.setColumnHidden(j + 3, True)
 
     def rasch_norm_vr(self):
         line_norma = self.ui.lineEdit_cr_nar_norma
@@ -394,7 +405,7 @@ class mywindow(QtWidgets.QMainWindow):
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(),0).text()
         id_dse = tabl_mk.item(tabl_mk.currentRow(), 6).text()
-        nom_det = tabl_mk.item(tabl_mk.currentRow(), 1).text().strip()
+        nom_det = (tabl_mk.item(tabl_mk.currentRow(), 1).text().strip() + ' ' + tabl_mk.item(tabl_mk.currentRow(), 0).text().strip()).strip()
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 1).text().strip()
         nom_pu = tabl_sp_mk.item(tabl_sp_mk.currentRow(),4).text()
         nom_pr = tabl_sp_mk.item(tabl_sp_mk.currentRow(),5).text()
@@ -641,6 +652,7 @@ class mywindow(QtWidgets.QMainWindow):
             self.vvod_oper()
 
         if tabl_sp_mk.currentRow() == -1:
+            tab.setCurrentIndex(0)
             F.msgbox("Не выбрана МК")
             return
         nom_mk = tabl_sp_mk.item(tabl_sp_mk.currentRow(), 0).text()
@@ -1044,6 +1056,7 @@ class mywindow(QtWidgets.QMainWindow):
         prof = F.naiti_v_spis_1_1(sp_bd_prof,0,kod,1)
         return prof
 
+
     def kod_po_prof(self, prof):
         sp_bd_prof = F.otkr_f(F.scfg('bd_prof') + os.sep + 'bd_prof.txt', False, "|")
         if sp_bd_prof == ['']:
@@ -1051,6 +1064,7 @@ class mywindow(QtWidgets.QMainWindow):
             return
         kod = F.naiti_v_spis_1_1(sp_bd_prof, 1, prof, 0)
         return kod
+
 
     def primenit_imena(self):
         tabl_vib_nar = self.ui.tableWidget_vibor_nar_dlya_imen
@@ -1065,9 +1079,16 @@ class mywindow(QtWidgets.QMainWindow):
             self.showDialog('Не выбран наряд')
             return
         Stroki_nar = F.otkr_f(F.scfg('Naryad') + os.sep + 'Naryad.txt',False,'|')
+        if tabl_vib_nar.item(tabl_vib_nar.currentRow(), 0) == None:
+            F.msgbox('наряд некорректный')
+            return
         nom_nar = tabl_vib_nar.item(tabl_vib_nar.currentRow(), 0).text()
-        nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar,0,nom_nar,26,False,True)
-        kol_rab = int(F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27,False,True))
+        nom_prof_nar = F.naiti_v_spis_1_1(Stroki_nar, 0,nom_nar, 26,False,True)
+        try:
+            kol_rab = int(F.naiti_v_spis_1_1(Stroki_nar, 0, nom_nar, 27,False,True))
+        except:
+            F.msgbox('наряд некорректный')
+            return
 
         ima1 = label_isp1.text().replace('  ',' ')
         ima2 = label_isp2.text().replace('  ',' ')
@@ -1117,32 +1138,37 @@ class mywindow(QtWidgets.QMainWindow):
                 nom_op = Stroki_nar[i][24]
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
-        print('1  ' + F.now())
+
         self.zap_prosm_nar()
-        print('2  ' + F.now())
+
         self.zap_tabl_vibor_imeni_sla_nar()
-        print('3  ' + F.now())
+
         self.zap_tabl_vibor_nar_dlya_imen()
-        print('4  ' + F.now())
+
         self.zap_tabl_komplektovki()
-        print('5  ' + F.now())
+
+
         self.zapis_v_mk(nom_op, id_dse, str(nom_mk))
-        print('6  ' + F.now())
+
         self.vibor_mk()
-        print('7  ' + F.now())
+
         self.ui.label_10_vibr_nar.setText("-----")
         tabl_vib_nar.selectRow(tmp_strok)
         self.showDialog('Наряд ' + nom_nar + ' выдан на ' + ima1 + ' ' + ima2)
         self.tabl_vibor_nar_dla_imen()
 
     def obnovit_progress_imena(self):
+        #print(F.now())
         rows = self.ui.tableWidget_vibor_imeni_sla_nar.rowCount()
         cols = self.ui.tableWidget_vibor_imeni_sla_nar.columnCount()
         spisok_chasov = []
         max_summ = 0
+        Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,"|",False,False)
+        Stroki_Zhur = F.otkr_f(F.tcfg('BDzhurnal'), False, "|", False, False)
+
         for st in range(0,rows):
             ima = self.ui.tableWidget_vibor_imeni_sla_nar.item(st,0).text()
-            summ = FCN.summ_chasov_po_imeni(ima)
+            summ = FCN.summ_chasov_po_imeni(ima,Stroki_nar,Stroki_Zhur)
             if max_summ < summ:
                 max_summ = summ
             spisok_chasov.append(summ)
@@ -1151,11 +1177,10 @@ class mywindow(QtWidgets.QMainWindow):
             # Создаем QProgressBar
             progress = QtWidgets.QProgressBar()
             progress.setMinimum(0)
-            progress.setMaximum(int(max_summ))
+            progress.setMaximum(max_summ)
 
             # Формат вывода: 10.50%
-
-            progress.setValue(int(spisok_chasov[item]))
+            progress.setValue(spisok_chasov[item])
             progress.setFormat('%v')
             progress.setTextVisible(False)
             #cellinfo2 = QtWidgets.QTableWidgetItem(spisok_chasov[item])
@@ -1172,7 +1197,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.tableWidget_vibor_imeni_sla_nar.setHorizontalHeaderLabels(
             ('ФИО', 'Час.','Загрузка')
         )
-
+        #print(F.now())
         return
 
 
@@ -1226,7 +1251,6 @@ class mywindow(QtWidgets.QMainWindow):
         filtr_col = {0, 1, 2}
         iskl_slov = {}
         self.zapoln_tabl(Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
-
         self.obnovit_progress_imena()
 
     def zap_TextEdit_opovesh(self):
@@ -1365,23 +1389,11 @@ class mywindow(QtWidgets.QMainWindow):
         if self.ui.lineEdit_cr_nar_pozicii.text() == "":
             self.Migat(3,self.ui.lineEdit_cr_nar_pozicii ,"Не заполнены позиции")
             return
-        if self.ui.comboBox_cr_nar_etap.currentText() == "":
-            self.Migat(3,self.ui.comboBox_cr_nar_etap ,"Не выбран этап")
-            return
         if self.ui.plainTextEdit_zadanie.toPlainText() == "":
             self.Migat(3,self.ui.plainTextEdit_zadanie ,"Не описано задание")
             return
 
-        if ' ' in self.ui.lineEdit_cr_nar_pozicii.text():
-            self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().strip())
-            self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().replace('   ', ' '))
-            self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().replace('  ', ' '))
-            self.ui.lineEdit_cr_nar_pozicii.setText(self.ui.lineEdit_cr_nar_pozicii.text().replace(' ', ','))
-            self.Migat(3, self.ui.lineEdit_cr_nar_pozicii, "Позиции указать через заяптую, исправлено.")
-            return
-        if self.ui.checkBox.checkState() == 1:
-            self.Migat(3, self.ui.checkBox, "Не выбрано состояние")
-            return
+
         nom_op = tabl_sp_oper.item(tabl_sp_oper.currentRow(),1).text().strip()
         primechanie = self.statusBar().currentMessage()
         #for i in range(11, tabl_mk.columnCount(),4):
@@ -1397,10 +1409,8 @@ class mywindow(QtWidgets.QMainWindow):
             Stroki = f.readlines()
         arr_item = [x.strip() for x in Stroki[-1].split("|")]
         nom = int(arr_item[0]) + 1
-        if self.ui.checkBox.checkState() == 2:
-            vid_narad = 'Последний'
-        else:
-            vid_narad = ''
+
+        vid_narad = '' # ПОСЛЕДНИЙ ИЛИ НЕТ, СВОБОДНАЯ ПЕРЕМЕННАЯ, В НАРЯДАХ КОЛОНКА Вид нормы
 
         if self.ui.checkBox_vecher.checkState() == 2:
             tip_narad = 'Вечерка'
@@ -1424,6 +1434,7 @@ class mywindow(QtWidgets.QMainWindow):
 
         id_dse = tabl_mk.item(tabl_mk.currentRow(),6).text()
 
+        current_etap = tabl_sp_oper.item(tabl_sp_oper.currentRow(), 2).text().strip()
 
         Stroki.append(str(nom) + "|" + str(nom_mk) + "|" + DT.today().strftime("%d.%m.%Y %H:%M:%S") + '|' +\
                       self.ui.lineEdit_cr_nar_nom_proect.text() + "$" +  self.ui.lineEdit_cr_nar_nomerPU.text() + \
@@ -1431,7 +1442,7 @@ class mywindow(QtWidgets.QMainWindow):
                       '|' + self.ui.lineEdit_cr_nar_norma.text() + \
                       '|' + sv_ur + '|' + self.windowTitle() + '|' + vid_narad + '|' + tip_narad + '|' + str(ves_det) + '|' + vid_pr +  \
                       '|' + self.ui.lineEdit_cr_nar_kolvo.text() + \
-                      '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + self.ui.comboBox_cr_nar_etap.currentText() + \
+                      '|' + self.ui.lineEdit_cr_nar_pozicii.text() + '|' + current_etap + \
                       '|||||||' + vneplan + '|||' + nom_op + '|' + id_dse + '|' + kod_prof + '|' + kr_op + '|' + koid_op + '|' + "\n")
         with open(cfg['Naryad'] + '\\Naryad.txt', 'w') as f:
             for item in Stroki:
@@ -1442,9 +1453,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.lineEdit_cr_nar_nomerPU.clear()
         self.ui.lineEdit_cr_nar_norma.clear()
         self.ui.lineEdit_cr_nar_pozicii.clear()
-        self.ui.comboBox_cr_nar_etap.setCurrentIndex(0)
         self.ui.plainTextEdit_zadanie.clear()
-        self.ui.checkBox.setCheckState(1)
         old_ind = tabl_mk.currentRow()
         self.zapis_v_mk(nom_op,id_dse,str(nom_mk))
         self.vibor_mk(old_ind)
@@ -1520,6 +1529,7 @@ class mywindow(QtWidgets.QMainWindow):
                         if op in obr2:
                             return obr2
                 return None
+
 
     def zapis_v_mk(self,nom_op, id_dse,nom_mk):
         id_det = id_dse
@@ -1625,6 +1635,9 @@ class mywindow(QtWidgets.QMainWindow):
         else:
             self.showDialog("Не найден пользователь")
         return
+
+
+
 
     def log_in(self):
         if self.ui.lineEdit_parol.text() == "":

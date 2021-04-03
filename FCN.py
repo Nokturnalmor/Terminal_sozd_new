@@ -1,7 +1,9 @@
 import hashlib
 import config
 import os
-import Cust_Functions as F
+from datetime import datetime as DT
+
+
 cfg = config.Config('Config\CFG.cfg') #файл конфига, находится п папке конфиг
 
 def proverka_nalichie_znach(item):
@@ -16,14 +18,14 @@ def proverka_nalichie_puti(item):
     else:
         return True
 
-def nomer_proekt_po_nom_nar(nn,kol):
-    with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
-        Stroki = f.readlines()
+def nomer_proekt_po_nom_nar(nn,kol,Stroki = False):
+    if Stroki == False:
+        with open(cfg['Naryad'] + '\\Naryad.txt', 'r') as f:
+            Stroki = f.readlines()
     for line in Stroki:
         if line.startswith(nn + '|') == True:
             arr = [x for x in line.split('|')]
             return arr[kol]
-    return ''
 
 def is_digit(string):
     if string.isdigit():
@@ -74,32 +76,47 @@ def max_kol(spisok):
     return maxk
 
 def parametr_iz_akta(sroka,ima):
-    arr_br = [x for x in sroka.split(ima)]
-    if '|' in arr_br[1]:
-        arr_br2 = [x for x in arr_br[1].split('|')]
-        rez = arr_br2[0]
+    arr_br = sroka.split('|')
+    flag = 0
+    for i in arr_br:
+        if ima in i:
+            flag = 1
+            rez = i.replace(ima,"")
+    if flag == 1:
+        return rez
     else:
-        rez = arr_br[1]
-    return rez
+        return ""
 
-def summ_chasov_po_imeni(ima):
-    arr_ima = ima.split("  ")
-    arr_ima.pop()
-    ima = " ".join(arr_ima)
+def now():
+    return DT.today().strftime("%d.%m.%Y %H:%M:%S")
+
+def date(god=2):
+    if god == 4:
+        return DT.today().strftime("%d.%m.%Y")
+    else:
+        return DT.today().strftime("%d.%m.%y")
+
+
+def summ_chasov_po_imeni(ima,Stroki_nar,Stroki_Zhur):
+    #arr_ima = ima.split("  ")
+    #arr_ima.pop()
+    #ima = "  ".join(arr_ima)
+    sp_nar = []
     summ = 0
-
-    Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
-    Stroki_Zhur = F.otkr_f(F.tcfg('BDzhurnal'),False,'|')
-
-    for line in range(1,len(Stroki_nar)):
-        if ima in Stroki_nar[line][17].replace('  ',' ') or ima == Stroki_nar[line][18].replace('  ',' '):
-            nom_nar = Stroki_nar[line][0]
-            flag_zakr = 0
-            for line_z in range(len(Stroki_Zhur)):
-                if nom_nar == Stroki_Zhur[line_z][2] and "Завершен" == Stroki_Zhur[line_z][7]:
-                    flag_zakr = 1
-                    break
-            if flag_zakr == 0:
-                summ += float(F.valm(Stroki_nar[line][5]))
-    return round(summ,3)
-
+    dl = len(Stroki_nar)
+    for i in range(dl-1,dl-dl//3,-1):
+        #if Stroki_nar[i][2].count('.') == 2 and Stroki_nar[i][2].count(':') == 2:
+            #delta = (DT.now() - DT.strptime(Stroki_nar[i][2],"%d.%m.%Y %H:%M:%S")).days
+            #if delta < 10:
+        if ima == Stroki_nar[i][17] or ima == Stroki_nar[i][18]:
+            sp_nar.append([Stroki_nar[i][0],Stroki_nar[i][5]])
+    for i in range(len(sp_nar)):
+        flag_zakr = 0
+        for z in range(len(Stroki_Zhur)-1,0,-1):
+            if  sp_nar[i][0] == Stroki_Zhur[z][2] and "Завершен" == Stroki_Zhur[z][7] and ima == Stroki_Zhur[z][3]:
+                flag_zakr = 1
+                break
+        if flag_zakr == 0:
+            tmp = sp_nar[i][1].replace(',','.')
+            summ +=  float(tmp)
+    return int(round(summ))
