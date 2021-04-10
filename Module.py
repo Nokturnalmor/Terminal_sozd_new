@@ -281,7 +281,6 @@ class mywindow(QtWidgets.QMainWindow):
                         break
                 if flag_kompl == 0:
                     tabl_mk.setRowHidden(i,True)
-
             for j in range(11, tabl_mk.columnCount(), 4):
                 flag_pust = 1
                 for i in range(tabl_mk.rowCount()):
@@ -296,19 +295,21 @@ class mywindow(QtWidgets.QMainWindow):
                     tabl_mk.setColumnHidden(j+3, True)
             for j in range(3,11):
                 tabl_mk.setColumnHidden(j, True)
+
             for j in range(11, tabl_mk.columnCount(), 4):
                 flag_gotova = 1
                 for i in range(tabl_mk.rowCount()):
                     if tabl_mk.isRowHidden(i) == False:
-                        if 'олный компл.' not in tabl_mk.item(i, j+1).text():
-                            flag_gotova = 0
-                            break
-                        if 'олный компл.' not in tabl_mk.item(i, j+2).text():
-                            flag_gotova = 0
-                            break
-                        if tabl_mk.item(i, j+3).text() != "":
-                            flag_gotova = 0
-                            break
+                        if tabl_mk.item(i, j).text() != "":
+                            if 'олный компл.' not in tabl_mk.item(i, j+1).text():
+                                flag_gotova = 0
+                                break
+                            if 'олный компл.' not in tabl_mk.item(i, j+2).text():
+                                flag_gotova = 0
+                                break
+                            if tabl_mk.item(i, j+3).text() != "":
+                                flag_gotova = 0
+                                break
                 if flag_gotova == 1:
                     tabl_mk.setColumnHidden(j, True)
                     tabl_mk.setColumnHidden(j + 1, True)
@@ -599,6 +600,7 @@ class mywindow(QtWidgets.QMainWindow):
 
     def vibor_mk_0(self):
         self.vibor_mk()
+
     def vibor_mk(self, old_strok = -1):
         stroka = old_strok
         tabl_mk = self.ui.tableWidget_vibor_det
@@ -1238,20 +1240,22 @@ class mywindow(QtWidgets.QMainWindow):
             line = line.replace('\n', '')
             if FCN.etap_po_fio(line, Stroki_emp) != "":
                 line = line.encode('cp1251', errors='ignore').decode('cp1251')
-                Stroki_temp.append(line)
+                Stroki_temp.append([line, '', ''])
         Stroki_temp2 = Stroki_temp.copy()
-        with open(cfg['FiltrEmpDel'] + '\\FiltrEmpDel.txt', 'r') as f:
-            Stroki_FiltrEmpDel = f.readlines()
+        spis_FiltrEmpDel = F.otkr_f(F.tcfg('FiltrEmpDel'), False, "")
         for item in Stroki_temp2:
-            for iskl in Stroki_FiltrEmpDel:
-                if iskl.strip() in item:
+            for iskl in range(len(spis_FiltrEmpDel)):
+                if spis_FiltrEmpDel[iskl].strip() in item[0]:
                     Stroki_temp.remove(item)
                     break
         Stroki_temp2.clear()
         filtr_col = {0, 1, 2}
         iskl_slov = {}
-        self.zapoln_tabl(Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
+        # self.zapoln_tabl(Stroki_temp,self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
+        F.zapoln_wtabl(self, Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 300,
+                       False, '', 20, 30)
         self.obnovit_progress_imena()
+
 
     def zap_TextEdit_opovesh(self):
         with open(cfg['Opovesh'] + '\\Opovesh.txt', 'r') as f:
