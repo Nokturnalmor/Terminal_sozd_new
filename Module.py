@@ -347,8 +347,31 @@ class mywindow(QtWidgets.QMainWindow):
             self.vigruz_tehkart(r,k)
         if k >10 and (k-12)%4==0:
             self.vigruz_tara(r,k)
+        if k >10 and (k-13)%4==0:
+            self.vigruz_narad(r,k)
         if k <4:
             self.ui.tabWidget_2.setCurrentIndex(2)
+
+    def vigruz_narad(self,r,k):
+        tabl_mk = self.ui.tableWidget_vibor_det
+        if tabl_mk.item(r, k).text() == "":
+            return
+        tabl_sp_mk = self.ui.tableWidget_vibor_mk
+        spis_nar = []
+        text = tabl_mk.item(r, k).text().strip().split('\n')
+        for item in text:
+            arr= item.split(' ')
+            if F.is_numeric(arr[0]) == True:
+                spis_nar.append(arr[0])
+        spisok_vivod = []
+        stroki_Zhur = F.otkr_f(F.tcfg('BDzhurnal'), False, "|", False, False)
+        for narad in spis_nar:
+            for i in range(len(stroki_Zhur)):
+                if stroki_Zhur[i][2] == narad:
+                    spisok_vivod.append(stroki_Zhur[i][0]+ " " + stroki_Zhur[i][3] + " " +  stroki_Zhur[i][7])
+
+        self.showDialog('\n'.join(spisok_vivod))
+        return
 
 
     def check_vneplan_rab(self):
@@ -783,11 +806,13 @@ class mywindow(QtWidgets.QMainWindow):
         i = self.ui.tableWidget_tabl_komplektovki.currentRow()
         tmp_strok = i
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
+        mesto = self.ui.tableWidget_tabl_komplektovki.item(i, 11).text()
         Stroki_nar = F.otkr_f(F.tcfg('Naryad'),False,'|')
         for i in range(0, len(Stroki_nar)):
             if Stroki_nar[i][0] == Nom_nar:
                 Stroki_nar[i][15]=''
                 Stroki_nar[i][16]=''
+                Stroki_nar[i][23] = mesto
                 break
         F.zap_f(F.tcfg('Naryad'),Stroki_nar,'|')
         self.showDialog('Наряд ' + Nom_nar + ' отмечен - некомплект')
@@ -803,10 +828,12 @@ class mywindow(QtWidgets.QMainWindow):
         tmp_strok = i
         Nom_nar = self.ui.tableWidget_tabl_komplektovki.item(i, 0).text()
         Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
+        mesto = self.ui.tableWidget_tabl_komplektovki.item(i, 11).text()
         for i in range(0, len(Stroki_nar)):
             if Stroki_nar[i][0] == Nom_nar:
                 Stroki_nar[i][15] = self.windowTitle()
                 Stroki_nar[i][16] = DT.today().strftime("%d.%m.%Y %H:%M:%S")
+                Stroki_nar[i][23] = mesto
                 break
         F.zap_f(F.tcfg('Naryad'), Stroki_nar, '|')
         self.showDialog('Наряд ' + Nom_nar + ' скомплектован под сборку')
@@ -1253,7 +1280,7 @@ class mywindow(QtWidgets.QMainWindow):
         iskl_slov = {}
         # self.zapoln_tabl(Stroki_temp,self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 1500)
         F.zapoln_wtabl(self, Stroki_temp, self.ui.tableWidget_vibor_imeni_sla_nar, filtr_col, {}, [], iskl_slov, 300,
-                       False, '', 20, 30)
+                       False, '', 30, 30, 40)
         self.obnovit_progress_imena()
 
 
@@ -1265,9 +1292,10 @@ class mywindow(QtWidgets.QMainWindow):
 
     def zap_tabl_komplektovki(self):
         Stroki_nar = F.otkr_f(F.tcfg('Naryad'), False, '|')
-        filtr_col = {0, 3, 4, 11, 12, 14, 15, 16, 17, 18}
+        filtr_col = {0, 3, 4, 11, 12, 13, 14, 15, 16, 17, 18,23}
         iskl_slov = {17: "*", 18: "*"}
-        F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_tabl_komplektovki,filtr_col,0,'', iskl_slov,200,True,'')
+        ed_nom = {11}
+        F.zapoln_wtabl(self,Stroki_nar,self.ui.tableWidget_tabl_komplektovki,filtr_col,ed_nom,'', iskl_slov,200,True,'')
         #self.zapoln_tabl(Stroki_nar, self.ui.tableWidget_tabl_komplektovki, filtr_col, {}, [], iskl_slov, 500, True)
 
 
